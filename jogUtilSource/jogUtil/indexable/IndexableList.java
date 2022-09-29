@@ -1,7 +1,6 @@
 package jogUtil.indexable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class IndexableList<Type> extends Indexable<Type>
 {

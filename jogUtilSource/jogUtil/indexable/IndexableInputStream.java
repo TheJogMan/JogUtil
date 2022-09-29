@@ -1,8 +1,8 @@
 package jogUtil.indexable;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
+
+import java.io.*;
+import java.util.*;
 
 public class IndexableInputStream extends Indexable<Byte>
 {

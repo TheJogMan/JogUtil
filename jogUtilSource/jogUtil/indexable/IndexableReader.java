@@ -1,8 +1,7 @@
 package jogUtil.indexable;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.util.ArrayList;
+import java.io.*;
+import java.util.*;
 
 public class IndexableReader extends Indexable<Character>
 {

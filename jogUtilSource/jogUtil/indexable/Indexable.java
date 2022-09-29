@@ -1,7 +1,6 @@
 package jogUtil.indexable;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 
 public abstract class Indexable<Type> implements Collection<Type>
 {

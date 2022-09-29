@@ -1,6 +1,6 @@
 package jogUtil;
 
-import jogUtil.data.TypeRegistry;
+import jogUtil.data.*;
 
 public class JogUtil
 {
