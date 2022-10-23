@@ -2,6 +2,8 @@ package jogUtil;
 
 import jogUtil.richText.*;
 
+import java.io.*;
+
 public class Result
 {
 	private final boolean success;
@@ -110,5 +112,28 @@ public class Result
 	public Exception exception()
 	{
 		return exception;
+	}
+	
+	/**
+	 * Describes where the exception was thrown from.
+	 * @param e
+	 * @return
+	 */
+	public static String describeException(Exception e)
+	{
+		return e + " at " + e.getStackTrace()[0].getClassName() + "." + e.getStackTrace()[0].getMethodName()
+			   + "(" + e.getStackTrace()[0].getFileName() + ":" + e.getStackTrace()[0].getLineNumber() + ")";
+	}
+	
+	/**
+	 * Gives the full stack trace of the exception.
+	 * @param e
+	 * @return
+	 */
+	public static String describeExceptionFull(Exception e)
+	{
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		e.printStackTrace(new PrintStream(stream));
+		return stream.toString();
 	}
 }

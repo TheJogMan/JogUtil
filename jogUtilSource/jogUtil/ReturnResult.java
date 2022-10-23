@@ -66,11 +66,10 @@ public class ReturnResult<Type> extends Result
 	
 	public Type value(boolean ignoreSuccess)
 	{
-		//TODO revisit once RichString is fully implemented
-		//throw new RuntimeException("Attempt to get return value from an unsuccessful operation: " + description().encode(EncodingType.PLAIN);
 		if (success() || ignoreSuccess)
 			return value;
 		else
-			throw new RuntimeException("Attempt to get return value from an unsuccessful result!");
+			throw new RuntimeException("Attempt to get return value from an unsuccessful operation: "
+									   + description().encode(EncodingType.PLAIN));
 	}
 }

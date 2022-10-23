@@ -1,13 +1,26 @@
 package jogUtil.richText;
 
+import java.awt.font.*;
+
 public class RichCharacter
 {
 	Style style;
-	char character;
+	Character character;
 	
 	public RichCharacter(char character)
 	{
+		this(character, new Style());
+	}
+	
+	public RichCharacter(char character, Style style)
+	{
 		this.character = character;
+		this.style = style.clone();
+	}
+	
+	public RichCharacter()
+	{
+		this(' ');
 	}
 	
 	public char character()
@@ -27,10 +40,8 @@ public class RichCharacter
 	
 	public void style(Style style)
 	{
-		this.style = style;
+		this.style = style.clone();
 	}
-	
-	//TODO everything needs implementation, I'm just slapping out the skeleton
 	
 	/**
 	 * Checks if the underlying char values are equal in a case-sensitive check
@@ -51,7 +62,13 @@ public class RichCharacter
 	 */
 	public boolean equalTo(RichCharacter otherChar, boolean caseSensitive)
 	{
-		return false;
+		if (otherChar == null)
+			return false;
+		if (caseSensitive)
+			return character == otherChar.character;
+		else
+			return Character.isUpperCase(character) && Character.isUpperCase(character)
+				&& character == otherChar.character;
 	}
 	
 	public boolean equalStyle(RichCharacter otherChar)
@@ -70,5 +87,48 @@ public class RichCharacter
 	public boolean visuallyEqual(RichCharacter otherChar)
 	{
 		return equalTo(otherChar, true) && equalStyle(otherChar);
+	}
+	
+	@Override
+	public RichCharacter clone()
+	{
+		return new RichCharacter(character, style);
+	}
+	
+	public int getLogicalHeight()
+	{
+		return style.font.getStringBounds("" + character, new FontRenderContext(style.font.getTransform(),
+										true, true)).getBounds().height;
+	}
+	
+	public int getLogicalWidth()
+	{
+		return style.font.getStringBounds("" + character, new FontRenderContext(style.font.getTransform(),
+										true, true)).getBounds().width;
+	}
+	
+	public int getVisualHeight()
+	{
+		return (new TextLayout("" + character, style.font,
+				new FontRenderContext(style.font.getTransform(), true,true)))
+				.getPixelBounds(null, 0, 0).height;
+	}
+	
+	public int getVisualWidth()
+	{
+		return (new TextLayout("" + character, style.font,
+				new FontRenderContext(style.font.getTransform(), true, true)))
+				.getPixelBounds(null, 0, 0).width;
+	}
+	
+	public String encode(EncodingType type)
+	{
+		return type.encode(this);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return encode(EncodingType.PLAIN);
 	}
 }

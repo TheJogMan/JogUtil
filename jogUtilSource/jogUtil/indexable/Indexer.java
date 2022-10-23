@@ -142,10 +142,28 @@ public class Indexer<Type> implements Iterator<Type>
 	 * @param count number of values to retrieve
 	 * @return
 	 * @see #next(int, boolean)
+	 * @see #allNext(int)
 	 */
-	public Type[] next(int count)
+	public ArrayList<Type> next(int count)
 	{
 		return next(count, true);
+	}
+	
+	/**
+	 * Gets multiple values from the underlying indexable.
+	 * <p>
+	 *     Filters will be applied by default.<br>
+	 *     If the end of the indexable is reached before all the desired
+	 *     values are retrieved, then null will be returned.
+	 * </p>
+	 * @param count number of values to retrieve
+	 * @return
+	 * @see #allNext(int, boolean)
+	 * @see #next(int)
+	 */
+	public ArrayList<Type> allNext(int count)
+	{
+		return allNext(count, true);
 	}
 	
 	/**
@@ -176,9 +194,9 @@ public class Indexer<Type> implements Iterator<Type>
 	 */
 	private void skipUnwanted()
 	{
-		while (!filterCheck(indexable.get(index)) && !atEnd())
+		while (hasNext(false) && !filterCheck(indexable.get(index)))
 		{
-			if (!hasNext(true))
+			if (!hasNext(false) && !complete())
 				indexable.waitForData();
 			index++;
 		}
@@ -232,16 +250,44 @@ public class Indexer<Type> implements Iterator<Type>
 	 * @param applyFilter
 	 * @return Whether filters should be applied.
 	 * @see #next(boolean)
+	 * @see #allNext(int, boolean)
 	 */
-	public Type[] next(int count, boolean applyFilter)
+	public ArrayList<Type> next(int count, boolean applyFilter)
 	{
-		Type[] values = (Type[]) (new Object[count]);
+		return unifiedNext(count, applyFilter, true);
+	}
+	
+	/**
+	 * Gets multiple values from the underlying indexable.
+	 * <p>
+	 *     If the end of the indexable is reached before all the desired
+	 *     values are retrieved, then null will be returned.
+	 * </p>
+	 * @param count number of values to retrieve
+	 * @param applyFilter
+	 * @return Whether filters should be applied.
+	 * @see #next(boolean)
+	 * @see #next(int, boolean)
+	 */
+	public ArrayList<Type> allNext(int count, boolean applyFilter)
+	{
+		return unifiedNext(count, applyFilter, false);
+	}
+	
+	private ArrayList<Type> unifiedNext(int count, boolean applyFilter, boolean fillNull)
+	{
+		ArrayList<Type> values = new ArrayList<>(count);
 		for (int index = 0; index < count; index++)
 		{
 			if (atEnd())
-				values[index] = null;
+			{
+				if (fillNull)
+					values.add(null);
+				else
+					return null;
+			}
 			else
-				values[index] = next(applyFilter);
+				values.add(next(applyFilter));
 		}
 		return values;
 	}
@@ -305,6 +351,17 @@ public class Indexer<Type> implements Iterator<Type>
 			indexer.filterStateStack.push(iterator.next());
 		}
 		return indexer;
+	}
+	
+	public void skip(Type... filter)
+	{
+		skip(List.of(filter));
+	}
+	
+	public void skip(Collection<Type> filter)
+	{
+		while (!atEnd() && filter.contains(get()))
+			next();
 	}
 	
 	/**
