@@ -78,8 +78,7 @@ public enum EncodingType
 		this(encoder, encoder, encoder, escapeCharacter, unsafeCharacters);
 	}
 	
-	private EncodingType(Encode encode, Transition transition, CharacterMorpher morph, char escapeCharacter,
-						 char[] unsafeCharacters)
+	private EncodingType(Encode encode, Transition transition, CharacterMorpher morph, char escapeCharacter, char[] unsafeCharacters)
 	{
 		this.encode = encode;
 		this.transition = transition;
@@ -154,7 +153,7 @@ public enum EncodingType
 	
 	private static class ObfuscationMorpher implements CharacterMorpher
 	{
-		Random random = new Random();
+		final Random random = new Random();
 		
 		@Override
 		public char morph(Style style, char character)

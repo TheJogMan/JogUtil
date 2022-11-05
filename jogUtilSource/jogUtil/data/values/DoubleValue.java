@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -13,6 +13,11 @@ public class DoubleValue extends Value<Double, Double>
 	public DoubleValue()
 	{
 		super();
+	}
+	
+	public DoubleValue(Object[] initData)
+	{
+		super(initData);
 	}
 	
 	public DoubleValue(Double value)
@@ -27,7 +32,7 @@ public class DoubleValue extends Value<Double, Double>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
 	}
@@ -74,6 +79,12 @@ public class DoubleValue extends Value<Double, Double>
 		};
 	}
 	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
+	}
+	
 	@TypeRegistry.CharacterConsumer
 	public static Consumer<Value<?, Double>, Character> getCharacterConsumer()
 	{
@@ -82,8 +93,7 @@ public class DoubleValue extends Value<Double, Double>
 			String string = StringValue.consumeCharacters(source, FloatValue.floatingPointCharacters);
 			try
 			{
-				return new Consumer.ConsumptionResult<>(new DoubleValue(Double.parseDouble(string)),
-														source);
+				return new Consumer.ConsumptionResult<>(new DoubleValue(Double.parseDouble(string)), source);
 			}
 			catch (Exception e)
 			{

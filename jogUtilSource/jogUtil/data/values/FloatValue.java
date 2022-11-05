@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -20,6 +20,11 @@ public class FloatValue extends Value<Float, Float>
 		super(value);
 	}
 	
+	public FloatValue(Object[] initData)
+	{
+		super(initData);
+	}
+	
 	@Override
 	public String defaultName()
 	{
@@ -27,7 +32,7 @@ public class FloatValue extends Value<Float, Float>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
 	}
@@ -74,6 +79,12 @@ public class FloatValue extends Value<Float, Float>
 		};
 	}
 	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
+	}
+	
 	@TypeRegistry.CharacterConsumer
 	public static Consumer<Value<?, Float>, Character> getCharacterConsumer()
 	{
@@ -102,8 +113,7 @@ public class FloatValue extends Value<Float, Float>
 		};
 	}
 	
-	public static final char[] floatingPointCharacters = {'0', '1', '2', '3', '4', '5', '6', '7', '8',
-														  '9', '0', '.', '-', 'E'};
+	public static final char[] floatingPointCharacters = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', '-', 'E'};
 	
 	public static byte[] toByteData(float value)
 	{

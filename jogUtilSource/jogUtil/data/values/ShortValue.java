@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -13,6 +13,11 @@ public class ShortValue extends Value<Short, Short>
 	public ShortValue()
 	{
 		super();
+	}
+	
+	public ShortValue(Object[] initData)
+	{
+		super(initData);
 	}
 	
 	public ShortValue(Short value)
@@ -27,7 +32,7 @@ public class ShortValue extends Value<Short, Short>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
 	}
@@ -60,6 +65,12 @@ public class ShortValue extends Value<Short, Short>
 	protected boolean checkDataEquality(Value<?, ?> value)
 	{
 		return value instanceof ShortValue && ((ShortValue)value).get().equals(get());
+	}
+	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
 	}
 	
 	@TypeRegistry.ByteConsumer

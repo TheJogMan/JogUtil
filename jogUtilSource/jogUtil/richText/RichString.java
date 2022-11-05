@@ -6,7 +6,7 @@ import java.util.*;
 
 public class RichString
 {
-	RichCharacter[] characters;
+	final RichCharacter[] characters;
 	
 	public RichString(String string)
 	{

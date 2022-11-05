@@ -6,9 +6,9 @@ import java.util.*;
 
 public class IndexableInputStream extends Indexable<Byte>
 {
-	ArrayList<Byte> data = new ArrayList<>();
-	InputStream stream;
-	EatingThread thread;
+	final ArrayList<Byte> data = new ArrayList<>();
+	final InputStream stream;
+	final EatingThread thread;
 	boolean complete = false;
 	
 	public IndexableInputStream(InputStream stream)

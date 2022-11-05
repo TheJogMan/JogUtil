@@ -119,7 +119,7 @@ public class Result
 	 * @param e
 	 * @return
 	 */
-	public static String describeException(Exception e)
+	public static String describeThrowable(Throwable e)
 	{
 		return e + " at " + e.getStackTrace()[0].getClassName() + "." + e.getStackTrace()[0].getMethodName()
 			   + "(" + e.getStackTrace()[0].getFileName() + ":" + e.getStackTrace()[0].getLineNumber() + ")";
@@ -130,7 +130,7 @@ public class Result
 	 * @param e
 	 * @return
 	 */
-	public static String describeExceptionFull(Exception e)
+	public static String describeThrowableFull(Throwable e)
 	{
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		e.printStackTrace(new PrintStream(stream));

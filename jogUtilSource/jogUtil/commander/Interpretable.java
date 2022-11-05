@@ -1,4 +1,4 @@
-package jogUtil.command;
+package jogUtil.commander;
 
 import jogUtil.*;
 import jogUtil.indexable.*;

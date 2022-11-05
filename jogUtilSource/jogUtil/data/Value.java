@@ -1,16 +1,15 @@
 package jogUtil.data;
 
 import jogUtil.*;
-import jogUtil.command.*;
-import jogUtil.command.argument.*;
+import jogUtil.commander.*;
+import jogUtil.commander.argument.*;
 import jogUtil.data.values.*;
 import jogUtil.indexable.*;
 import jogUtil.richText.*;
 
-import java.lang.reflect.*;
 import java.util.*;
 
-public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueType>
+public abstract class Value<ValueType, ConsumptionType> implements Argument<ValueType>
 {
 	/**
 	 * Provides a default value intended for initializing new values.
@@ -55,25 +54,52 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 	 */
 	protected abstract boolean checkDataEquality(Value<?, ?> value);
 	
-	private ValueType value = emptyValue();
+	ValueType value = emptyValue();
 	String name = null;
 	Data parent = null;
 	boolean persistent = false;
-	ArrayList<ValueChangeListener<ValueType>> changeListeners = new ArrayList<>();
+	final ArrayList<Value.ValueChangeListener<ValueType>> changeListeners = new ArrayList<>();
 	
 	public Value()
 	{
+		this(new Object[0]);
+	}
 	
+	public Value(Object[] initData)
+	{
+		initArgument(initData);
 	}
 	
 	public Value(ValueType initialValue)
 	{
+		this();
 		set(initialValue);
 	}
 	
 	public ValueType get()
 	{
 		return value;
+	}
+	
+	/**
+	 * Used for setting the value of a CompoundArgumentValue from its character consumer
+	 * @param value
+	 */
+	Result internalSet(Object value)
+	{
+		try
+		{
+			set((ValueType)value);
+			return new Result();
+		}
+		catch (ClassCastException e)
+		{
+			return new Result("Could not cast to value type");
+		}
+		catch (Exception e)
+		{
+			return new Result("Exception occurred: " + Result.describeThrowableFull(e));
+		}
 	}
 	
 	public void set(ValueType value)
@@ -112,21 +138,17 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		return value;
 	}
 	
-	public Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Byte>
-	setFromBytes(Indexer<Byte> source)
+	public Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Byte> setFromBytes(Indexer<Byte> source)
 	{
-		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Byte> result;
-		result = byteConsumer().consume(source);
+		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Byte> result = byteConsumer().consume(source);
 		if (result.success())
 			set(result.value().get());
 		return result;
 	}
 	
-	public Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Character>
-	setFromCharacters(Indexer<Character> source)
+	public Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Character> setFromCharacters(Indexer<Character> source)
 	{
-		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Character> result;
-		result = characterConsumer().consume(source);
+		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Character> result = characterConsumer().consume(source);
 		if (result.success())
 			set(result.value().get());
 		return result;
@@ -139,28 +161,14 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 	
 	public Consumer<Value<ValueType, ConsumptionType>, Byte> byteConsumer()
 	{
-		try
-		{
-			Method method = TypeRegistry.get(getClass()).byteConsumer;
-			return (Consumer<Value<ValueType, ConsumptionType>, Byte>)method.invoke(null);
-		}
-		catch (Exception ignored)
-		{
-			return null;
-		}
+		Consumer<?, Byte> consumer = type().byteConsumer();
+		return (Consumer<Value<ValueType, ConsumptionType>, Byte>)consumer;
 	}
 	
 	public Consumer<Value<ValueType, ConsumptionType>, Character> characterConsumer()
 	{
-		try
-		{
-			Method method = TypeRegistry.get(getClass()).characterConsumer;
-			return (Consumer<Value<ValueType, ConsumptionType>, Character>)method.invoke(null);
-		}
-		catch (Exception ignored)
-		{
-			return null;
-		}
+		Consumer<?, Character> consumer = type().characterConsumer();
+		return (Consumer<Value<ValueType, ConsumptionType>, Character>)consumer;
 	}
 	
 	/**
@@ -192,15 +200,7 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 	}
 	
 	@Override
-	protected final void initArgument(Object[] data)
-	{
-		//this shouldn't be needed for value arguments, so by overriding it here
-		//we are making sure that anyone implementing a Value is able to ignore it
-	}
-	
-	@Override
-	public final ReturnResult<ValueType> interpretArgument(Indexer<Character> source,
-																 Executor executor)
+	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor)
 	{
 		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Character> result;
 		result = characterConsumer().consume(source);
@@ -236,8 +236,7 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		//ensure that setting and getting values is consistent
 		set(value);
 		if (!value.equals(get()))
-			return new Result(
-					"Getting value produced a result that didn't match the set value.");
+			return new Result("Getting value produced a result that didn't match the set value.");
 		
 		//ensure that copying a value doesn't throw an exception
 		Value<ValueType, ConsumptionType> second;
@@ -247,8 +246,7 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		}
 		catch (Exception e)
 		{
-			return new Result("Exception occurred while making a copy of the value: "
-							  + Result.describeExceptionFull(e));
+			return new Result("Exception occurred while making a copy of the value: " + Result.describeThrowableFull(e));
 		}
 		
 		//ensure that instances with the same value will equal each other
@@ -259,8 +257,7 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		}
 		catch (Exception e)
 		{
-			return new Result("Exception occurred while checking data equality: "
-							  + Result.describeExceptionFull(e));
+			return new Result("Exception occurred while checking data equality: " + Result.describeThrowableFull(e));
 		}
 		if (!equal)
 			return new Result("Two instances were not equal despite having the same value.");
@@ -273,8 +270,7 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		}
 		catch (Exception e)
 		{
-			return new Result("Exception occurred while converting to string: "
-							  + Result.describeExceptionFull(e));
+			return new Result("Exception occurred while converting to string: " + Result.describeThrowableFull(e));
 		}
 		if (string == null)
 			return new Result("asString can not return null.");
@@ -291,15 +287,12 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		}
 		catch (Exception e)
 		{
-			return new Result("Exception occurred while parsing character data: "
-							  + Result.describeExceptionFull(e));
+			return new Result("Exception occurred while parsing character data: " + Result.describeThrowableFull(e));
 		}
 		if (characterResult == null)
 			return new Result("Character consumer can not return a null result.");
 		if (!characterResult.success())
-			return new Result(RichStringBuilder
-						.start("Character consumption failed on data that should have been valid: ")
-						.append(characterResult.description()).build());
+			return new Result(RichStringBuilder.start("Character consumption failed on data that should have been valid: ").append(characterResult.description()).build());
 		//make sure that the extra character we added earlier wasn't consumed, and is the only character
 		//that wasn't consumed.
 		if (characterSource.atEnd())
@@ -318,8 +311,7 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		}
 		catch (Exception e)
 		{
-			return new Result("Exception occurred while converting to byte data: "
-							  + Result.describeExceptionFull(e));
+			return new Result("Exception occurred while converting to byte data: " + Result.describeThrowableFull(e));
 		}
 		if (byteData == null)
 			return new Result("asBytes can not return null.");
@@ -339,15 +331,12 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		}
 		catch (Exception e)
 		{
-			return new Result("Exception occurred while parsing byte data: "
-							  + Result.describeExceptionFull(e));
+			return new Result("Exception occurred while parsing byte data: " + Result.describeThrowableFull(e));
 		}
 		if (byteResult == null)
 			return new Result("Byte consumer can not return a null result.");
 		if (!byteResult.success())
-			return new Result(RichStringBuilder
-							.start("Byte consumption failed on data that should have been valid: ")
-							.append(byteResult.description()).build());
+			return new Result(RichStringBuilder.start("Byte consumption failed on data that should have been valid: ").append(byteResult.description()).build());
 		//make sure that the extra byte we added earlier wasn't consumed, and is the only byte
 		//that wasn't consumed.
 		if (byteSource.atEnd())
@@ -360,5 +349,19 @@ public abstract class Value<ValueType, ConsumptionType> extends Argument<ValueTy
 		
 		//all checks have passed
 		return new Result();
+	}
+	
+	CompletionBehavior behavior = CompletionBehavior.FILTER;
+	
+	@Override
+	public final void setCompletionBehavior(CompletionBehavior behavior)
+	{
+		this.behavior = behavior;
+	}
+	
+	@Override
+	public final CompletionBehavior getCompletionBehavior()
+	{
+		return behavior;
 	}
 }

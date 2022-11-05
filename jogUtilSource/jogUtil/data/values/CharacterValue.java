@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -14,6 +14,11 @@ public class CharacterValue extends Value<Character, Character>
 	public CharacterValue()
 	{
 		super();
+	}
+	
+	public CharacterValue(Object[] initData)
+	{
+		super(initData);
 	}
 	
 	public CharacterValue(Character character)
@@ -63,9 +68,15 @@ public class CharacterValue extends Value<Character, Character>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
+	}
+	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
 	}
 	
 	@TypeRegistry.ByteConsumer

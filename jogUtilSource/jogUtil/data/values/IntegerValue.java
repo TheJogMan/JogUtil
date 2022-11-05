@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -13,6 +13,11 @@ public class IntegerValue extends Value<Integer, Integer>
 	public IntegerValue(Integer integer)
 	{
 		super(integer);
+	}
+	
+	public IntegerValue(Object[] initData)
+	{
+		super(initData);
 	}
 	
 	public IntegerValue()
@@ -57,9 +62,15 @@ public class IntegerValue extends Value<Integer, Integer>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
+	}
+	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
 	}
 	
 	@TypeRegistry.ByteConsumer
@@ -83,8 +94,7 @@ public class IntegerValue extends Value<Integer, Integer>
 			String string = StringValue.consumeCharacters(source, ByteValue.numericCharacters);
 			try
 			{
-				return new Consumer.ConsumptionResult<>(new IntegerValue(Integer.parseInt(string)),
-														source);
+				return new Consumer.ConsumptionResult<>(new IntegerValue(Integer.parseInt(string)), source);
 			}
 			catch (Exception e)
 			{

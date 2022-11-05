@@ -1,20 +1,21 @@
-package jogUtil.command.argument;
+package jogUtil.commander.argument;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.values.*;
 import jogUtil.indexable.*;
 import jogUtil.richText.*;
 
 import java.util.*;
 
-public abstract class Argument<ValueType> implements Interpretable<ValueType>
+public interface Argument<ValueType> extends Interpretable<ValueType>
 {
 	/**
 	 * Used if a new name isn't set by an ArgumentList
 	 * @return
 	 */
-	public abstract String defaultName();
+	public String defaultName();
+	
 	/**
 	 * Used if a new description isn't set by an ArgumentList
 	 * <p>
@@ -23,10 +24,11 @@ public abstract class Argument<ValueType> implements Interpretable<ValueType>
 	 * </p>
 	 * @return
 	 */
-	public RichString defaultDescription()
+	public default RichString defaultDescription()
 	{
 		return new RichString("");
 	}
+	
 	/**
 	 * Used to pass in parameters
 	 * <p>
@@ -40,7 +42,8 @@ public abstract class Argument<ValueType> implements Interpretable<ValueType>
 	 * </p>
 	 * @param data
 	 */
-	protected abstract void initArgument(Object[] data);
+	public void initArgument(Object[] data);
+	
 	/**
 	 * Provides auto completions.
 	 * <p>
@@ -53,10 +56,10 @@ public abstract class Argument<ValueType> implements Interpretable<ValueType>
 	 * @param source
 	 * @param executor
 	 * @return
-	 * @see jogUtil.command.Interpretable#getCompletions(Indexer, Executor)
+	 * @see jogUtil.commander.Interpretable#getCompletions(Indexer, Executor)
 	 * @see #setCompletionBehavior(CompletionBehavior)
 	 */
-	protected abstract List<String> argumentCompletions(Indexer<Character> source, Executor executor);
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor);
 	
 	/**
 	 * Interprets this argument.
@@ -68,10 +71,7 @@ public abstract class Argument<ValueType> implements Interpretable<ValueType>
 	 * @param executor
 	 * @return
 	 */
-	protected abstract ReturnResult<ValueType> interpretArgument(Indexer<Character> source,
-																 Executor executor);
-	
-	private CompletionBehavior completionBehavior = CompletionBehavior.FILTER;
+	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor);
 	
 	/**
 	 * Determines how completions will be modified.
@@ -90,10 +90,14 @@ public abstract class Argument<ValueType> implements Interpretable<ValueType>
 	 * @param behavior
 	 * @see #argumentCompletions(Indexer, Executor)
 	 */
-	protected void setCompletionBehavior(CompletionBehavior behavior)
-	{
-		completionBehavior = behavior;
-	}
+	public void setCompletionBehavior(CompletionBehavior behavior);
+	
+	/**
+	 * 
+	 * @return
+	 * @see #setCompletionBehavior(CompletionBehavior)
+	 */
+	public CompletionBehavior getCompletionBehavior();
 	
 	public enum CompletionBehavior
 	{
@@ -101,7 +105,7 @@ public abstract class Argument<ValueType> implements Interpretable<ValueType>
 	}
 	
 	@Override
-	public final List<String> getCompletions(Indexer<Character> source, Executor executor)
+	public default List<String> getCompletions(Indexer<Character> source, Executor executor)
 	{
 		ArrayList<String> completions = new ArrayList<>();
 		if (canExecute(executor).success())
@@ -112,13 +116,13 @@ public abstract class Argument<ValueType> implements Interpretable<ValueType>
 			String token = StringValue.consumeString(source, ' ');
 			
 			
-			if (completionBehavior == CompletionBehavior.APPEND)
+			if (getCompletionBehavior() == CompletionBehavior.APPEND)
 			{
 				//append the token to the beginning of all completions
 				for (String completion : rawCompletions)
 					completions.add(token + completion);
 			}
-			else if (completionBehavior == CompletionBehavior.FILTER)
+			else if (getCompletionBehavior() == CompletionBehavior.FILTER)
 			{
 				//exclude any completions that do not start with the token
 				token = token.toLowerCase();
@@ -133,7 +137,7 @@ public abstract class Argument<ValueType> implements Interpretable<ValueType>
 	}
 	
 	@Override
-	public final ReturnResult<ValueType> interpret(Indexer<Character> source, Executor executor)
+	public default ReturnResult<ValueType> interpret(Indexer<Character> source, Executor executor)
 	{
 		Result filterResult = canExecute(executor);
 		if (!filterResult.success())

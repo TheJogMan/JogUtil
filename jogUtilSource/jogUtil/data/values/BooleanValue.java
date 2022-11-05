@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -12,6 +12,11 @@ public class BooleanValue extends Value<Boolean, Boolean>
 	public BooleanValue()
 	{
 		super();
+	}
+	
+	public BooleanValue(Object[] initData)
+	{
+		super(initData);
 	}
 	
 	public BooleanValue(Boolean value)
@@ -26,7 +31,7 @@ public class BooleanValue extends Value<Boolean, Boolean>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		ArrayList<String> completions = new ArrayList<>();
 		String token = StringValue.consumeString(source, ' ').toLowerCase();
@@ -65,6 +70,12 @@ public class BooleanValue extends Value<Boolean, Boolean>
 	protected boolean checkDataEquality(Value<?, ?> value)
 	{
 		return value instanceof BooleanValue && ((BooleanValue)value).get() == get();
+	}
+	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
 	}
 	
 	@TypeRegistry.ByteConsumer

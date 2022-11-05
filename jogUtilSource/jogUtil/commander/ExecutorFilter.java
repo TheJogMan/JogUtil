@@ -1,4 +1,4 @@
-package jogUtil.command;
+package jogUtil.commander;
 
 import jogUtil.*;
 
@@ -27,7 +27,7 @@ public interface ExecutorFilter
 	 *
 	 * @param executor
 	 * @return
-	 * @see jogUtil.command.ExecutorFilter.Filter#canExecute(Executor);
+	 * @see jogUtil.commander.ExecutorFilter.Filter#canExecute(Executor);
 	 */
 	public default Result canExecute(Executor executor)
 	{

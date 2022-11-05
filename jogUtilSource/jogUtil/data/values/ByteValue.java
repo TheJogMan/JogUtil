@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -12,6 +12,11 @@ public class ByteValue extends Value<Byte, Byte>
 	public ByteValue(Byte byt)
 	{
 		super(byt);
+	}
+	
+	public ByteValue(Object[] initData)
+	{
+		super(initData);
 	}
 	
 	public ByteValue()
@@ -56,9 +61,15 @@ public class ByteValue extends Value<Byte, Byte>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
+	}
+	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
 	}
 	
 	@TypeRegistry.ByteConsumer
@@ -201,8 +212,7 @@ public class ByteValue extends Value<Byte, Byte>
 		}
 	}
 	
-	public static byte buildByte(boolean bit0, boolean bit1, boolean bit2, boolean bit3, boolean bit4,
-								 boolean bit5, boolean bit6, boolean bit7)
+	public static byte buildByte(boolean bit0, boolean bit1, boolean bit2, boolean bit3, boolean bit4, boolean bit5, boolean bit6, boolean bit7)
 	{
 		byte byt = 0;
 		byt = setBit(byt, 0, bit0);

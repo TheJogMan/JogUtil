@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 import jogUtil.richText.*;
@@ -12,12 +12,25 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 		implements List<Type>
 {
 	private final TypeRegistry.RegisteredType type;
-	ArrayList<ListChangeListener<Type>> listeners = new ArrayList<>();
+	final ArrayList<ListChangeListener<Type>> listeners = new ArrayList<>();
 	
-	public ListValue(TypeRegistry.RegisteredType type)
+	private static void validateType(TypeRegistry.RegisteredType type)
 	{
 		if (type == null)
 			throw new IllegalArgumentException("Type must be registered.");
+	}
+	
+	public ListValue(TypeRegistry.RegisteredType type)
+	{
+		super(new Object[0]);
+		validateType(type);
+		this.type = type;
+	}
+	
+	public ListValue(TypeRegistry.RegisteredType type, Object[] initData)
+	{
+		super(initData);
+		validateType(type);
 		this.type = type;
 	}
 	
@@ -27,8 +40,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 		set(value);
 	}
 	
-	public static <Type extends Value<?, ?>> ListValue<Type> create(TypeRegistry.RegisteredType type,
-																	List<Type> value)
+	public static <Type extends Value<?, ?>> ListValue<Type> create(TypeRegistry.RegisteredType type, List<Type> value)
 	{
 		return new ListValue<>(type, value);
 	}
@@ -40,7 +52,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
 	}
@@ -111,6 +123,12 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 		return false;
 	}
 	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
+	}
+	
 	@TypeRegistry.ByteConsumer
 	public static Consumer<Value<?, List<Value<?, ?>>>, Byte> getByteConsumer()
 	{
@@ -125,8 +143,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 			String typeName = (String)typeNameResult.value().get();
 			TypeRegistry.RegisteredType type = TypeRegistry.get(typeName);
 			if (type == null)
-				return new Consumer.ConsumptionResult<>(source, "\"" + typeName
-																+ "\" is not a registered type.");
+				return new Consumer.ConsumptionResult<>(source, "\"" + typeName + "\" is not a registered type.");
 			
 			Consumer.ConsumptionResult<Value<?, Integer>, Byte> lengthResult =
 					IntegerValue.getByteConsumer().consume(source);
@@ -142,9 +159,8 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 				Consumer.ConsumptionResult<Value<?, ?>, Byte> valueResult =
 						type.byteConsumer().consume(source);
 				if (!valueResult.success())
-					return new Consumer.ConsumptionResult<>(source, RichStringBuilder
-							.start("Could not parse value #" + index + " as " + type.name() + ": ")
-							.append(valueResult.description()).build());
+					return new Consumer.ConsumptionResult<>(source, RichStringBuilder.start("Could not parse value #" + index + " as " + type.name() + ": ")
+																					 .append(valueResult.description()).build());
 				list.add(valueResult.value());
 			}
 			return new Consumer.ConsumptionResult<>(create(type, list), source);
@@ -159,18 +175,14 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 			Consumer.ConsumptionResult<Value<?, String>, Character> typeNameResult =
 					StringValue.getCharacterConsumer().consume(source);
 			if (!typeNameResult.success())
-				return new Consumer.ConsumptionResult<>(source, RichStringBuilder
-						.start("Could not parse type name: ")
-						.append(typeNameResult.description()).build());
+				return new Consumer.ConsumptionResult<>(source, RichStringBuilder.start("Could not parse type name: ").append(typeNameResult.description()).build());
 			String typeName = (String)typeNameResult.value().get();
 			TypeRegistry.RegisteredType type = TypeRegistry.get(typeName);
 			if (type == null)
-				return new Consumer.ConsumptionResult<>(source, "\"" + typeName
-																+ "\" is not a registered type.");
+				return new Consumer.ConsumptionResult<>(source, "\"" + typeName + "\" is not a registered type.");
 			
 			if (source.next() != '[')
-				return new Consumer.ConsumptionResult<>(source,
-														"Expected '[' after type name.");
+				return new Consumer.ConsumptionResult<>(source, "Expected '[' after type name.");
 			source.skip(Data.formattingCharacters);
 			
 			ArrayList<Value<?, ?>> list = new ArrayList<>();
@@ -183,9 +195,8 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 				Consumer.ConsumptionResult<Value<?, ?>, Character> valueResult =
 						type.characterConsumer().consume(source);
 				if (!valueResult.success())
-					return new Consumer.ConsumptionResult<>(source, RichStringBuilder
-							.start("Could not parse value #" + index + " as " + type.name() + ": ")
-							.append(valueResult.description()).build());
+					return new Consumer.ConsumptionResult<>(source, RichStringBuilder.start("Could not parse value #" + index + " as " + type.name() + ": ")
+																					 .append(valueResult.description()).build());
 				list.add(valueResult.value());
 				
 				if (source.get() == ',')
@@ -246,15 +257,11 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 			{
 				if (value == null)
 					throw new IllegalArgumentException("Can not add a null value.");
-				if (type.typeClass().getGenericSuperclass()
-						.equals(value.getClass().getGenericSuperclass()))
+				if (type.typeClass().getGenericSuperclass().equals(value.getClass().getGenericSuperclass()))
 					newList.add(value);
 				else
-					throw new IllegalArgumentException("Value type is not the same as list type. A "
-													   + type.typeClass().getGenericSuperclass()
-													   + " list can not contain a "
-													   + value.getClass().getGenericSuperclass()
-													   + " value.");
+					throw new IllegalArgumentException("Value type is not the same as list type. A " + type.typeClass().getGenericSuperclass() + " list can not contain a "
+													   + value.getClass().getGenericSuperclass() + " value.");
 			}
 			super.set(newList);
 		}
@@ -432,10 +439,10 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 	{
 		ArrayList<Type> removed = new ArrayList<>();
 		get().forEach(value ->
-					  {
-						  if (!c.contains(value))
-							  removed.add(value);
-					  });
+		{
+			if (!c.contains(value))
+				removed.add(value);
+		});
 		boolean changed = get().retainAll(c);
 		listeners.forEach(listener -> listener.collectionRemoved(removed));
 		return changed;

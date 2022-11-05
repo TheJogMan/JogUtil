@@ -4,7 +4,7 @@ import java.util.*;
 
 public class IndexableList<Type> extends Indexable<Type>
 {
-	List<Type> list;
+	final List<Type> list;
 	boolean finished = false;
 	
 	public IndexableList()

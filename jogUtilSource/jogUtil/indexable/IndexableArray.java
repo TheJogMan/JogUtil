@@ -2,7 +2,7 @@ package jogUtil.indexable;
 
 public class IndexableArray<Type> extends Indexable<Type>
 {
-	Type[] values;
+	final Type[] values;
 	
 	public IndexableArray(int size)
 	{

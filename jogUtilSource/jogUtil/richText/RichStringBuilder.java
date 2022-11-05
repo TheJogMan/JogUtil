@@ -4,7 +4,7 @@ import java.util.*;
 
 public class RichStringBuilder
 {
-	LinkedList<RichCharacter> characters = new LinkedList<>();
+	final LinkedList<RichCharacter> characters = new LinkedList<>();
 	Style style = new Style();
 	
 	public static RichStringBuilder start()

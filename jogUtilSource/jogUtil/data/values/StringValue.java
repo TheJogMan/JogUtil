@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -16,6 +16,11 @@ public class StringValue extends Value<String, String>
 		super(value);
 	}
 	
+	public StringValue(Object[] initData)
+	{
+		super(initData);
+	}
+	
 	public StringValue()
 	{
 		super();
@@ -28,7 +33,7 @@ public class StringValue extends Value<String, String>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		ArrayList<String> completion = new ArrayList<>();
 		completion.add("\"");
@@ -91,6 +96,12 @@ public class StringValue extends Value<String, String>
 		return value instanceof StringValue && ((StringValue)value).get().compareTo(get()) == 0;
 	}
 	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
+	}
+	
 	@TypeRegistry.ByteConsumer
 	public static Consumer<Value<?, String>, Byte> getByteConsumer()
 	{
@@ -151,14 +162,11 @@ public class StringValue extends Value<String, String>
 					return new Consumer.ConsumptionResult<>(source, "Must end with \"");
 				else
 				{
-					return new Consumer.ConsumptionResult<>(new StringValue(unpack(builder.toString())),
-															source);
+					return new Consumer.ConsumptionResult<>(new StringValue(unpack(builder.toString())), source);
 				}
 			}
 			else
-				return new Consumer.ConsumptionResult<>(source, "Must begin with '\"', got '"
-																+ sanitize("" + source.get())
-																+ "'");
+				return new Consumer.ConsumptionResult<>(source, "Must begin with '\"', got '" + sanitize("" + source.get()) + "'");
 		};
 	}
 	

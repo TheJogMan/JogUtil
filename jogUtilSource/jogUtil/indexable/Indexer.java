@@ -4,9 +4,9 @@ import java.util.*;
 
 public class Indexer<Type> implements Iterator<Type>
 {
-	Indexable<Type> indexable;
+	final Indexable<Type> indexable;
 	int index;
-	ArrayDeque<FilterState<Type>> filterStateStack = new ArrayDeque<>();
+	final ArrayDeque<FilterState<Type>> filterStateStack = new ArrayDeque<>();
 	
 	public Indexer(Indexable<Type> indexable)
 	{
@@ -432,7 +432,7 @@ public class Indexer<Type> implements Iterator<Type>
 	 */
 	static class FilterState<Type>
 	{
-		ArrayList<Filter<Type>> filters = new ArrayList<>();
+		final ArrayList<Filter<Type>> filters = new ArrayList<>();
 		
 		protected FilterState<Type> copy()
 		{

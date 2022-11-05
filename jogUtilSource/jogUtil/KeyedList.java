@@ -4,8 +4,8 @@ import java.util.*;
 
 public class KeyedList<KeyType, ValueType>
 {
-	ArrayList<KeyType> keys = new ArrayList<>();
-	ArrayList<ValueType> values = new ArrayList<>();
+	final ArrayList<KeyType> keys = new ArrayList<>();
+	final ArrayList<ValueType> values = new ArrayList<>();
 	
 	public void put(KeyType key, ValueType value)
 	{
@@ -72,8 +72,8 @@ public class KeyedList<KeyType, ValueType>
 			this.value = value;
 		}
 		
-		Key key;
-		Value value;
+		final Key key;
+		final Value value;
 		
 		public Key getKey()
 		{

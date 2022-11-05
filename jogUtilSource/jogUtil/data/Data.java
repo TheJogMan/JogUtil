@@ -9,7 +9,7 @@ import java.util.*;
 
 public class Data implements Iterable<Value<?, ?>>
 {
-	KeyedList<String, Value<?, ?>> values = new KeyedList<>();
+	final KeyedList<String, Value<?, ?>> values = new KeyedList<>();
 	
 	public int size()
 	{

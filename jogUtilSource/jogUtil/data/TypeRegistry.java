@@ -1,6 +1,8 @@
 package jogUtil.data;
 
 import jogUtil.*;
+import jogUtil.commander.*;
+import jogUtil.commander.argument.*;
 import jogUtil.data.values.*;
 import jogUtil.richText.*;
 
@@ -12,7 +14,8 @@ public class TypeRegistry
 {
 	private static final HashMap<String, RegisteredType> nameMap = new HashMap<>();
 	private static final HashMap<Class<?>, RegisteredType> classMap = new HashMap<>();
-	private static final RequiredMethod[] requiredMethods = requiredMethods();
+	private static final RequiredMethod[] plainArgumentMethods = plainArgumentMethods();
+	private static final RequiredMethod[] compoundArgumentMethods = compoundArgumentMethods();
 	private static final ReturnResult<Result[]> defaultValueStatus = registerDefaults();
 	
 	private static ReturnResult<Result[]> registerDefaults()
@@ -40,8 +43,7 @@ public class TypeRegistry
 			String name = (String)typeClasses[index][0];
 			Result result = register(name, typeClass);
 			if (!result.success())
-				throw new RuntimeException("Could not register default value: "
-										   + result.description().encode(EncodingType.PLAIN));
+				throw new RuntimeException("Could not register default value: " + result.description());
 			registrationResults[index] = result;
 		}
 		
@@ -50,28 +52,26 @@ public class TypeRegistry
 	
 	public static Result register(String name, Class<? extends Value<?, ?>> typeClass)
 	{
+		//make sure nothing has already been registered with this name or class
 		if (classMap.containsKey(typeClass))
-			return new Result("Could not register type " + typeClass.getName() + " as '" +
-							  name + "': Already registered.");
+			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Already registered.");
 		if (nameMap.containsKey(name))
-			return new Result("Could not register type " + typeClass.getName() + " as '" +
-							  name + "': Another type is already registered under that name.");
+			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Another type is already registered under that name.");
 		
+		//verify that the implementation is valid, and create the registration
 		ReturnResult<RegisteredType> creationResult = RegisteredType.create(name, typeClass);
 		if (!creationResult.success())
-			return new Result("Could not register type " + typeClass.getName() + " as '" +
-							  name + "': Not a valid value type implementation: " +
-							  creationResult.description());
+			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Not a valid value type implementation: " + creationResult.description());
 		classMap.put(typeClass, creationResult.value());
 		nameMap.put(name, creationResult.value());
 		
+		//validate that the implementation behaves as expected
 		Result validationResult = validate(creationResult.value());
 		if (!validationResult.success())
 		{
 			nameMap.remove(name);
 			classMap.remove(typeClass);
-			return new Result("Could not register type " + typeClass.getName() + " as '" +
-							  name + "': Validation Failure: " + validationResult.description());
+			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Validation Failure: " + validationResult.description());
 		}
 		else
 			return new Result(typeClass.getName() + " registered as " + name, true);
@@ -87,8 +87,7 @@ public class TypeRegistry
 		}
 		catch (Exception e)
 		{
-			return new Result("Exception occurred getting validation values, "
-							  + Result.describeExceptionFull(e));
+			return new Result("Exception occurred getting validation values, " + Result.describeThrowableFull(e));
 		}
 		if (values == null)
 			return new Result("Validation values can not be null.");
@@ -101,9 +100,7 @@ public class TypeRegistry
 		{
 			validationResult = values[index].validate();
 			if (!validationResult.success())
-				return new Result(RichStringBuilder.start("Validation value #" + index
-														  + " failed: ")
-												   .append(validationResult.description()).build());
+				return new Result(RichStringBuilder.start("Validation value #" + index + " failed: ").append(validationResult.description()).build());
 		}
 		
 		return new Result();
@@ -116,25 +113,47 @@ public class TypeRegistry
 		Type valueType;
 		Type consumptionResult;
 		
+		boolean compoundArgument;
+		
 		Method byteConsumer;
 		Method characterConsumer;
 		Method validationValues;
+		Method argumentList;
+		Method buildValue;
 		
 		static ReturnResult<RegisteredType> create(String name, Class<? extends Value<?, ?>> typeClass)
 		{
-			Type type = stepUpToImplementation(typeClass.getGenericSuperclass(), Value.class);
-			if (type == null)
-				return new ReturnResult<>("Does not implement " + Value.class.getName());
-			Type[] parameters = ((ParameterizedType)type).getActualTypeArguments();
+			//make sure that this is at the very least a subclass of Value
+			Type plainType = stepUpToImplementation(typeClass.getGenericSuperclass(), Value.class);
+			Type compoundType = stepUpToImplementation(typeClass.getGenericSuperclass(), CompoundArgumentValue.class);
+			if (plainType == null && compoundType == null)
+				return new ReturnResult<>("Does not implement " + Value.class.getName() + " or " + CompoundArgumentValue.class.getName());
+			
+			RequiredMethod[] requiredMethods;
+			Type[] parameters;
+			if (compoundType == null)
+			{
+				requiredMethods = TypeRegistry.plainArgumentMethods;
+				parameters = ((ParameterizedType)plainType).getActualTypeArguments();
+			}
+			else
+			{
+				requiredMethods = TypeRegistry.compoundArgumentMethods;
+				parameters = ((ParameterizedType)compoundType).getActualTypeArguments();
+			}
 			
 			RegisteredType registration = new RegisteredType();
 			registration.typeClass = typeClass;
 			registration.name = name;
 			registration.valueType = parameters[0];
 			registration.consumptionResult = parameters[1];
+			registration.compoundArgument = plainType == null;
 			
-			//once we know that this is indeed a Value class, and have the value type, we now need to
-			//check for all of our expected methods and ensure that they are all defined properly
+			return checkForRequiredMethods(typeClass, requiredMethods, registration);
+		}
+		
+		private static ReturnResult<RegisteredType> checkForRequiredMethods(Class<? extends Value<?, ?>> typeClass, RequiredMethod[] requiredMethods, RegisteredType registration)
+		{
 			try
 			{
 				Method[] methods = typeClass.getMethods();
@@ -146,38 +165,25 @@ public class TypeRegistry
 						//we are looking for we single out the methods that have the proper annotations
 						if (value.isAnnotationPresent(method.annotation))
 						{
-							//make sure the method has the correct modifiers and no arguments
-							if (value.getParameterCount() != 0)
-								return new ReturnResult<>(method.annotation.getSimpleName()
-														  + " method must not require arguments.");
+							//make sure the method has the correct modifiers
 							int modifiers = value.getModifiers();
 							if (!Modifier.isPublic(modifiers))
-								return new ReturnResult<>(method.annotation.getSimpleName()
-														  + " method must be public.");
+								return new ReturnResult<>(method.annotation.getSimpleName() + " method must be public.");
 							if (Modifier.isAbstract(modifiers))
-								return new ReturnResult<>(method.annotation.getSimpleName()
-														  + " method must not be abstract.");
+								return new ReturnResult<>(method.annotation.getSimpleName() + " method must not be abstract.");
 							if (!Modifier.isStatic(modifiers))
-								return new ReturnResult<>(method.annotation.getSimpleName()
-														  + " method must be static.");
+								return new ReturnResult<>(method.annotation.getSimpleName() + " method must be static.");
 							
 							//now we check to make sure there is only one method for each annotation
 							if (method.field.get(registration) != null)
-								return new ReturnResult<>("Only one "
-														  + method.annotation.getSimpleName()
-														  + " method can be provided.");
+								return new ReturnResult<>("Only one " + method.annotation.getSimpleName() + " method can be provided.");
 							
-							//validate that this method has the correct return type, given the annotation
+							//validate that this method has the correct return type and arguments, given the annotation
 							//and value type
-							Result result = method.returnValidator
-									.validate(value.getGenericReturnType(),
-											  registration.valueType,
-											  registration.consumptionResult);
+							Result result = method.methodValidator.validate(value.getGenericReturnType(), registration.valueType, registration.consumptionResult, value.getGenericParameterTypes());
 							if (!result.success())
-								return new ReturnResult<>(RichStringBuilder.start(method.annotation
-													.getSimpleName()
-													+ " method does not have the correct return type: ")
-													.append(result.description()).build());
+								return new ReturnResult<>(RichStringBuilder.start(method.annotation.getSimpleName() + " method does not have the correct return type: ")
+																		   .append(result.description()).build());
 							//if the method is properly defined, then we can set the field
 							method.field.set(registration, value);
 						}
@@ -189,8 +195,7 @@ public class TypeRegistry
 				for (RequiredMethod method : requiredMethods)
 				{
 					if (method.field.get(registration) == null)
-						return new ReturnResult<>(method.annotation.getSimpleName()
-												  + " method was not provided.");
+						return new ReturnResult<>(method.annotation.getSimpleName() + " method was not provided.");
 				}
 				return new ReturnResult<>(registration);
 			}
@@ -201,18 +206,6 @@ public class TypeRegistry
 			catch (IllegalArgumentException e)
 			{
 				return new ReturnResult<>("Fields could not be assigned.");
-			}
-		}
-		
-		public Value<?, ?> newInstance()
-		{
-			try
-			{
-				return typeClass.getConstructor().newInstance();
-			}
-			catch (Exception e)
-			{
-				return null;
 			}
 		}
 		
@@ -240,13 +233,20 @@ public class TypeRegistry
 		
 		public Consumer<Value<?, ?>, Character> characterConsumer()
 		{
-			try
+			if (compoundArgument)
 			{
-				return (Consumer<Value<?, ?>, Character>) characterConsumer.invoke(null);
+				return CompoundArgumentValue.compoundCharacterConsumer(this);
 			}
-			catch (IllegalAccessException | InvocationTargetException | ClassCastException e)
+			else
 			{
-				return null;
+				try
+				{
+					return (Consumer<Value<?, ?>, Character>) characterConsumer.invoke(null);
+				}
+				catch (IllegalAccessException | InvocationTargetException | ClassCastException e)
+				{
+					return null;
+				}
 			}
 		}
 		
@@ -257,6 +257,49 @@ public class TypeRegistry
 				return (Value<?, ?>[]) validationValues.invoke(null);
 			}
 			catch (IllegalAccessException | InvocationTargetException | ClassCastException e)
+			{
+				return null;
+			}
+		}
+		
+		AdaptiveArgumentList argumentList(Object[] initData)
+		{
+			if (compoundArgument)
+			{
+				try
+				{
+					return (AdaptiveArgumentList) argumentList.invoke(null, (Object)initData);
+				}
+				catch (IllegalAccessException | InvocationTargetException | ClassCastException e)
+				{
+					return null;
+				}
+			}
+			else
+			{
+				return null;
+			}
+		}
+		
+		Object buildValue(AdaptiveInterpretation result, Executor executor)
+		{
+			if (compoundArgument)
+			{
+				try
+				{
+					return buildValue.invoke(null, result, executor);
+				}
+				catch (IllegalAccessException | ClassCastException e)
+				{
+					e.printStackTrace();
+					return null;
+				}
+				catch (InvocationTargetException e)
+				{
+					throw new RuntimeException("Exception occurred while building value: " + Result.describeThrowableFull(e.getTargetException()));
+				}
+			}
+			else
 			{
 				return null;
 			}
@@ -298,54 +341,69 @@ public class TypeRegistry
 		return defaultValueStatus.value(true);
 	}
 	
-	private static RequiredMethod[] requiredMethods()
+	private static class ValidationValuesMethod extends RequiredMethod
 	{
-		return new RequiredMethod[] {
-		new RequiredMethod(ValidationValues.class, "validationValues",
-		(returnType, valueType, consumptionType) ->
+		private ValidationValuesMethod()
 		{
-			if (returnType instanceof GenericArrayType)
+			super(ValidationValues.class, "validationValues",
+			(returnType, valueType, consumptionType, arguments) ->
 			{
-				Type type = ((GenericArrayType) returnType).getGenericComponentType();
-				type = stepUpToImplementation(type, Value.class);
-				if (type != null)
+				if (arguments.length > 0)
+					return new Result("Must require no arguments.");
+				
+				if (returnType instanceof GenericArrayType)
 				{
-					Type[] parameters = ((ParameterizedType)type).getActualTypeArguments();
-					if (parameters[1].equals(consumptionType))
-						return new Result();
-				}
-			}
-			return new Result("Must return " + Value.class.getName() + "<?, "
-							  + consumptionType.getTypeName() + ">[]");
-		}),
-		
-		new RequiredMethod(ByteConsumer.class, "byteConsumer",
-		(returnType, valueType, consumptionType) ->
-		{
-			returnType = stepUpToImplementation(returnType, Consumer.class);
-			if (returnType != null)
-			{
-				Type[] consumerParameters = ((ParameterizedType)returnType).getActualTypeArguments();
-				Type resultType = stepUpToImplementation(consumerParameters[0], Value.class);
-				if (resultType != null)
-				{
-					Type[] resultParameters = ((ParameterizedType)resultType).getActualTypeArguments();
-					if (resultParameters[0] instanceof WildcardType
-						&& resultParameters[1].equals(consumptionType)
-						&& consumerParameters[1].equals(Byte.class))
+					Type type = ((GenericArrayType) returnType).getGenericComponentType();
+					type = stepUpToImplementation(type, Value.class);
+					if (type != null)
 					{
-						return new Result();
+						Type[] parameters = ((ParameterizedType)type).getActualTypeArguments();
+						if (parameters[1].equals(consumptionType))
+							return new Result();
 					}
 				}
-			}
-			return new Result("Must return " + Consumer.class.getName() + "<"
-							  + Value.class.getName() + "<?, " + consumptionType.getTypeName() + ">, "
-							  + Byte.class.getName() + ">");
-		}),
+				return new Result("Must return " + Value.class.getName() + "<?, " + consumptionType.getTypeName() + ">[]");
+			});
+		}
+	}
+	
+	private static class ByteConsumerMethod extends RequiredMethod
+	{
+		private ByteConsumerMethod()
+		{
+			super(ByteConsumer.class, "byteConsumer",
+			(returnType, valueType, consumptionType, arguments) ->
+			{
+				if (arguments.length > 0)
+					return new Result("Must require no arguments.");
+				
+				returnType = stepUpToImplementation(returnType, Consumer.class);
+				if (returnType != null)
+				{
+					Type[] consumerParameters = ((ParameterizedType)returnType).getActualTypeArguments();
+					Type resultType = stepUpToImplementation(consumerParameters[0], Value.class);
+					if (resultType != null)
+					{
+						Type[] resultParameters = ((ParameterizedType)resultType).getActualTypeArguments();
+						if (resultParameters[0] instanceof WildcardType && resultParameters[1].equals(consumptionType) && consumerParameters[1].equals(Byte.class))
+							return new Result();
+					}
+				}
+				return new Result("Must return " + Consumer.class.getName() + "<" + Value.class.getName() + "<?, " + consumptionType.getTypeName() + ">, " + Byte.class.getName() + ">");
+			});
+		}
+	}
+	
+	private static RequiredMethod[] plainArgumentMethods()
+	{
+		return new RequiredMethod[] {new ValidationValuesMethod(), new ByteConsumerMethod(),
 		
 		new RequiredMethod(CharacterConsumer.class, "characterConsumer",
-		(returnType, valueType, consumptionType) ->
+		(returnType, valueType, consumptionType, arguments) ->
 		{
+			if (arguments.length > 0)
+				return new Result("Must require no arguments.");
+			
 			returnType = stepUpToImplementation(returnType, Consumer.class);
 			if (returnType != null)
 			{
@@ -354,17 +412,47 @@ public class TypeRegistry
 				if (resultType != null)
 				{
 					Type[] resultParameters = ((ParameterizedType)resultType).getActualTypeArguments();
-					if (resultParameters[0] instanceof WildcardType
-						&& resultParameters[1].equals(consumptionType)
-						&& consumerParameters[1].equals(Character.class))
+					if (resultParameters[0] instanceof WildcardType && resultParameters[1].equals(consumptionType) && consumerParameters[1].equals(Character.class))
 					{
 						return new Result();
 					}
 				}
 			}
-			return new Result("Must return " + Consumer.class.getName() + "<"
-							  + Value.class.getName() + "<?, " + consumptionType.getTypeName() + ">, "
-							  + Character.class.getName() + ">");
+			return new Result("Must return " + Consumer.class.getName() + "<" + Value.class.getName() + "<?, " + consumptionType.getTypeName() + ">, " + Character.class.getName() + ">");
+		})};
+	}
+	
+	private static RequiredMethod[] compoundArgumentMethods()
+	{
+		return new RequiredMethod[] {new ValidationValuesMethod(), new ByteConsumerMethod(),
+		
+		new RequiredMethod(ArgumentList.class, "argumentList",
+		(returnType, valueType, consumptionType, arguments) ->
+		{
+			if (!returnType.equals(AdaptiveArgumentList.class))
+				return new Result("Must return " + AdaptiveArgumentList.class.getName());
+			if (arguments.length != 1 || !arguments[0].equals(Object[].class))
+				return new Result("Must accept an Object array as it's only argument.");
+			
+			return new Result();
+		}),
+		
+		new RequiredMethod(BuildValue.class, "buildValue",
+		(returnType, valueType, consumptionType, arguments) ->
+		{
+			if (arguments.length == 2 && arguments[0].equals(AdaptiveInterpretation.class))
+			{
+				Type executor = stepUpToImplementation(arguments[1], Executor.class);
+				if (executor != null)
+				{
+					if (!returnType.equals(consumptionType))
+						return new Result("Must return " + consumptionType.getTypeName());
+					
+					return new Result();
+				}
+			}
+			
+			return new Result("Arguments must be (" + AdaptiveInterpretation.class.getName() + ", " + Executor.class.getName() + ")");
 		})};
 	}
 	
@@ -378,8 +466,7 @@ public class TypeRegistry
 	 */
 	private static Type stepUpToImplementation(Type type, Type inheritedType)
 	{
-		if (type instanceof ParameterizedType
-			&& ((ParameterizedType) type).getRawType().equals(inheritedType))
+		if (type instanceof ParameterizedType && ((ParameterizedType) type).getRawType().equals(inheritedType))
 			return type;
 		else if (type.equals(inheritedType))
 			return type;
@@ -426,12 +513,28 @@ public class TypeRegistry
 	
 	}
 	
+	@Documented
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public @interface ArgumentList
+	{
+	
+	}
+	
+	@Documented
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public @interface BuildValue
+	{
+	
+	}
+	
 	/**
 	 * Ensures that a required method's return type is what it should be.
 	 */
-	private static interface ReturnValidator
+	private static interface MethodValidator
 	{
-		Result validate(Type returnType, Type valueType, Type consumptionType);
+		Result validate(Type returnType, Type valueType, Type consumptionType, Type[] arguments);
 	}
 	
 	/**
@@ -439,15 +542,15 @@ public class TypeRegistry
 	 */
 	private static class RequiredMethod
 	{
-		Class<? extends Annotation> annotation;
+		final Class<? extends Annotation> annotation;
 		Field field;
-		ReturnValidator returnValidator;
+		final MethodValidator methodValidator;
 		
 		private RequiredMethod(Class<? extends Annotation> annotation, String fieldName,
-							   ReturnValidator returnValidator)
+							   MethodValidator methodValidator)
 		{
 			this.annotation = annotation;
-			this.returnValidator = returnValidator;
+			this.methodValidator = methodValidator;
 			
 			try
 			{
@@ -455,9 +558,7 @@ public class TypeRegistry
 			}
 			catch (NoSuchFieldException | SecurityException e)
 			{//these exceptions should in theory never occur but the IDE complains if we don't handle them
-				System.err.println("Data TypeRegistry Could not initialize required method "
-								   + annotation.getSimpleName() + ": Could not find "
-								   + fieldName + " field.");
+				System.err.println("Data TypeRegistry Could not initialize required method " + annotation.getSimpleName() + ": Could not find " + fieldName + " field.");
 			}
 		}
 	}

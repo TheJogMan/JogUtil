@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -12,6 +12,11 @@ public class UUIDValue extends Value<UUID, UUID>
 	public UUIDValue()
 	{
 		super();
+	}
+	
+	public UUIDValue(Object[] initData)
+	{
+		super(initData);
 	}
 	
 	public UUIDValue(UUID id)
@@ -26,7 +31,7 @@ public class UUIDValue extends Value<UUID, UUID>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
 	}
@@ -61,6 +66,12 @@ public class UUIDValue extends Value<UUID, UUID>
 		return value instanceof UUIDValue && ((UUIDValue)value).get().equals(get());
 	}
 	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
+	}
+	
 	@TypeRegistry.ByteConsumer
 	public static Consumer<Value<?, UUID>, Byte> getByteConsumer()
 	{
@@ -83,8 +94,7 @@ public class UUIDValue extends Value<UUID, UUID>
 				return new Consumer.ConsumptionResult<>(source, "Not enough available data.");
 			try
 			{
-				return new Consumer.ConsumptionResult<>(new UUIDValue(UUID.fromString(string)),
-														source);
+				return new Consumer.ConsumptionResult<>(new UUIDValue(UUID.fromString(string)), source);
 			}
 			catch (Exception e)
 			{

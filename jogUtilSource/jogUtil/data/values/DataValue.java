@@ -1,7 +1,7 @@
 package jogUtil.data.values;
 
 import jogUtil.*;
-import jogUtil.command.*;
+import jogUtil.commander.*;
 import jogUtil.data.*;
 import jogUtil.indexable.*;
 
@@ -12,6 +12,11 @@ public class DataValue extends Value<Data, Data>
 	public DataValue()
 	{
 		super();
+	}
+	
+	public DataValue(Object[] initData)
+	{
+		super(initData);
 	}
 	
 	public DataValue(Data data)
@@ -26,7 +31,7 @@ public class DataValue extends Value<Data, Data>
 	}
 	
 	@Override
-	protected List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
 	{
 		return null;
 	}
@@ -61,6 +66,12 @@ public class DataValue extends Value<Data, Data>
 		return value instanceof DataValue && ((DataValue)value).get().matches(get());
 	}
 	
+	@Override
+	public void initArgument(Object[] args)
+	{
+	
+	}
+	
 	@TypeRegistry.ByteConsumer
 	public static Consumer<Value<?, Data>, Byte> getByteConsumer()
 	{
@@ -68,8 +79,7 @@ public class DataValue extends Value<Data, Data>
 		{
 			Consumer.ConsumptionResult<Data, Byte> result = Data.byteConsumer().consume(source);
 			if (result.success())
-				return new Consumer.ConsumptionResult<>(new DataValue(result.value()), source,
-														result.description());
+				return new Consumer.ConsumptionResult<>(new DataValue(result.value()), source, result.description());
 			else
 				return new Consumer.ConsumptionResult<>(source, result.description());
 		};
@@ -82,8 +92,7 @@ public class DataValue extends Value<Data, Data>
 		{
 			Consumer.ConsumptionResult<Data, Character> result = Data.characterConsumer().consume(source);
 			if (result.success())
-				return new Consumer.ConsumptionResult<>(new DataValue(result.value()), source,
-														result.description());
+				return new Consumer.ConsumptionResult<>(new DataValue(result.value()), source, result.description());
 			else
 				return new Consumer.ConsumptionResult<>(source, result.description());
 		};

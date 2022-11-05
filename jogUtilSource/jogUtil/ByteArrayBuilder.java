@@ -8,7 +8,7 @@ import java.util.*;
 
 public class ByteArrayBuilder
 {
-	ArrayList<Byte> data = new ArrayList<>();
+	final ArrayList<Byte> data = new ArrayList<>();
 	
 	public ByteArrayBuilder()
 	{

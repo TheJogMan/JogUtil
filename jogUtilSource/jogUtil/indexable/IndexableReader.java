@@ -5,9 +5,9 @@ import java.util.*;
 
 public class IndexableReader extends Indexable<Character>
 {
-	ArrayList<Character> characters = new ArrayList<>();
-	Reader reader;
-	EatingThread thread;
+	final ArrayList<Character> characters = new ArrayList<>();
+	final Reader reader;
+	final EatingThread thread;
 	boolean complete = false;
 	
 	public IndexableReader(Reader reader)
