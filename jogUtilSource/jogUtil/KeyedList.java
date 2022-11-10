@@ -2,7 +2,7 @@ package jogUtil;
 
 import java.util.*;
 
-public class KeyedList<KeyType, ValueType>
+public class KeyedList<KeyType, ValueType> implements Iterable<ValueType>
 {
 	final ArrayList<KeyType> keys = new ArrayList<>();
 	final ArrayList<ValueType> values = new ArrayList<>();
@@ -91,6 +91,7 @@ public class KeyedList<KeyType, ValueType>
 		return (KeyType[])keys.toArray();
 	}
 	
+	@Override
 	public Iterator<ValueType> iterator()
 	{
 		return values.iterator();

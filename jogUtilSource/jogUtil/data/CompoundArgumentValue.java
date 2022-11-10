@@ -68,14 +68,13 @@ public abstract class CompoundArgumentValue<ValueType, ConsumptionType> extends 
 			AdaptiveArgumentList list = type.argumentList(new Object[0]);
 			
 			//interpret the list, and make sure it was successful
-			ReturnResult<AdaptiveInterpretation> result = list.compoundInterpret(source, executor);
+			AdaptiveInterpretation result = list.interpret(source, executor);
 			if (!result.success())
 				return new Consumer.ConsumptionResult<>(source, result.description());
-			AdaptiveInterpretation interpretation = result.value();
 			
 			//convert the interpretation results into the resulting value
-			Object object = type.buildValue(interpretation, executor);
-			source.setPosition(interpretation.indexer().position());
+			Object object = type.buildValue(result, executor);
+			source.setPosition(result.indexer().position());
 			
 			//create the Value object and set the value, then make sure nothing went wrong
 			try
@@ -83,13 +82,13 @@ public abstract class CompoundArgumentValue<ValueType, ConsumptionType> extends 
 				Value<?, ?> value = type.typeClass.getConstructor().newInstance();
 				Result setResult = value.internalSet(object);
 				if (setResult.success())
-					return new Consumer.ConsumptionResult<>(value, interpretation.indexer());
+					return new Consumer.ConsumptionResult<>(value, result.indexer());
 				else
-					return new Consumer.ConsumptionResult<>(interpretation.indexer(), RichStringBuilder.start("Could not set value: ").append(setResult.description()).build());
+					return new Consumer.ConsumptionResult<>(result.indexer(), RichStringBuilder.start("Could not set value: ").append(setResult.description()).build());
 			}
 			catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e)
 			{
-				return new Consumer.ConsumptionResult<>(interpretation.indexer(), "Exception occurred while creating a new instance of the value: " + Result.describeThrowableFull(e));
+				return new Consumer.ConsumptionResult<>(result.indexer(), "Exception occurred while creating a new instance of the value: " + Result.describeThrowableFull(e));
 			}
 		};
 	}

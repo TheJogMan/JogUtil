@@ -71,6 +71,8 @@ public class RichStringBuilder
 	
 	public RichStringBuilder append(RichString string)
 	{
+		if (string == null)
+			return this;
 		for (RichCharacter character : string.characters)
 			append(character);
 		return this;
@@ -78,6 +80,8 @@ public class RichStringBuilder
 	
 	public RichStringBuilder append(String string)
 	{
+		if (string == null)
+			return this;
 		for (char character : string.toCharArray())
 			append(character);
 		return this;

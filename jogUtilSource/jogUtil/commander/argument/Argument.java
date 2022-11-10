@@ -11,6 +11,21 @@ import java.util.*;
 public interface Argument<ValueType> extends Interpretable<ValueType>
 {
 	/**
+	 * Used to pass in parameters
+	 * <p>
+	 *     Since arguments are added to ArgumentLists by class, arguments
+	 *     can be provided along with the class to then be passed into
+	 *     the argument with this method.<br>
+	 *     <br>
+	 *     Called immediately after a new instance of the argument is
+	 *     created for an ArgumentList, and can be considered to be the
+	 *     constructor.
+	 * </p>
+	 * @param data
+	 */
+	public void initArgument(Object[] data);
+	
+	/**
 	 * Used if a new name isn't set by an ArgumentList
 	 * @return
 	 */
@@ -28,21 +43,6 @@ public interface Argument<ValueType> extends Interpretable<ValueType>
 	{
 		return new RichString("");
 	}
-	
-	/**
-	 * Used to pass in parameters
-	 * <p>
-	 *     Since arguments are added to ArgumentLists by class, arguments
-	 *     can be provided along with the class to then be passed into
-	 *     the argument with this method.<br>
-	 *     <br>
-	 *     Called immediately after a new instance of the argument is
-	 *     created for an ArgumentList, and can be considered to be the
-	 *     constructor.
-	 * </p>
-	 * @param data
-	 */
-	public void initArgument(Object[] data);
 	
 	/**
 	 * Provides auto completions.

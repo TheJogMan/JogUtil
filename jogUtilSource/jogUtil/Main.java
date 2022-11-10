@@ -2,6 +2,7 @@ package jogUtil;
 
 import jogUtil.commander.*;
 import jogUtil.commander.argument.*;
+import jogUtil.commander.command.*;
 import jogUtil.data.*;
 import jogUtil.data.values.*;
 import jogUtil.richText.*;
@@ -11,6 +12,23 @@ public class Main
 	public static void main(String[] args)
 	{
 		Result[] results = TypeRegistry.defaultValueStatus();
+		
+		Console console = new Console("Test", '/');
+		Executor.HeadlessExecutor executor = new Executor.HeadlessExecutor(System.out);
+		
+		console.interpret(StringValue.indexer("help"), executor);
+		System.out.println("#");
+		console.interpret(StringValue.indexer("help help"), executor);
+		System.out.println("#");
+		console.interpret(StringValue.indexer("help help 3"), executor);
+		System.out.println("#");
+		console.interpret(StringValue.indexer("help he"), executor);
+		System.out.println("#");
+		console.interpret(StringValue.indexer("he"), executor);
+		System.out.println("#");
+		console.interpret(StringValue.indexer(""), executor);
+		System.out.println("#");
+		
 		for (Result result : results)
 			System.out.println(result.description());
 		
@@ -103,7 +121,7 @@ public class Main
 		@TypeRegistry.ArgumentList
 		public static AdaptiveArgumentList argumentList(Object[] initData)
 		{
-			AdaptiveArgumentList list = new AdaptiveArgumentList();
+			AdaptiveArgumentList list = new AdaptiveArgumentList(false);
 			
 			list.addArgument(StringValue.class);
 			list.addArgument(IntegerValue.class);

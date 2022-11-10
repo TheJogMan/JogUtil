@@ -9,7 +9,7 @@ import java.util.*;
 
 public abstract class CompoundArgument<ValueType> implements Argument<ValueType>
 {
-	final AdaptiveArgumentList arguments = new AdaptiveArgumentList();
+	final AdaptiveArgumentList arguments = new AdaptiveArgumentList(false);
 	
 	protected abstract ReturnResult<ValueType> compoundInterpretation(AdaptiveInterpretation result, Executor executor);
 	
@@ -28,11 +28,11 @@ public abstract class CompoundArgument<ValueType> implements Argument<ValueType>
 	@Override
 	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor)
 	{
-		ReturnResult<AdaptiveInterpretation> result = arguments.compoundInterpret(source, executor);
+		AdaptiveInterpretation result = arguments.interpret(source, executor);
 		if (!result.success())
 			return new ReturnResult<>(result.description());
 		else
-			return compoundInterpretation(result.value(), executor);
+			return compoundInterpretation(result, executor);
 	}
 	
 	protected final void addArgument(int listNumber, Class<? extends Argument<?>> argument, String name, Object[] data, RichString description)
@@ -92,5 +92,54 @@ public abstract class CompoundArgument<ValueType> implements Argument<ValueType>
 	public final CompletionBehavior getCompletionBehavior()
 	{
 		return behavior;
+	}
+	
+	private final ArrayList<ExecutorFilter.Filter> filters = new ArrayList<>();
+	private final ArrayList<ExecutorFilter.Transformer> transformers = new ArrayList<>();
+	
+	@Override
+	public void addFilter(Filter filter)
+	{
+		filters.add(filter);
+	}
+	
+	@Override
+	public void removeFilter(Filter filter)
+	{
+		filters.remove(filter);
+	}
+	
+	@Override
+	public void addTransformer(Transformer transformer)
+	{
+		transformers.add(transformer);
+	}
+	
+	@Override
+	public void removeTransformer(Transformer transformer)
+	{
+		transformers.add(transformer);
+	}
+	
+	@Override
+	public void transform(Executor executor)
+	{
+		for (ExecutorFilter.Transformer transformer : transformers)
+			transformer.transform(executor);
+	}
+	
+	@Override
+	public Result canExecute(Executor executor, boolean applyTransformers)
+	{
+		if (applyTransformers)
+			transform(executor);
+		
+		for (ExecutorFilter.Filter filter : filters)
+		{
+			Result result = filter.canExecute(executor);
+			if (!result.success())
+				return result;
+		}
+		return new Result();
 	}
 }

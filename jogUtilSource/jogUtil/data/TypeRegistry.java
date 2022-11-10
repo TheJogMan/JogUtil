@@ -482,7 +482,6 @@ public class TypeRegistry
 	
 	//these annotations are used to identify the required methods in a value types implementation
 	
-	@Documented
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	public @interface ValidationValues
@@ -490,7 +489,6 @@ public class TypeRegistry
 	
 	}
 	
-	@Documented
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	public @interface ByteConsumer
@@ -505,7 +503,6 @@ public class TypeRegistry
 	 *     The Character Consumer needs to be able to account for these.
 	 * </p>
 	 */
-	@Documented
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	public @interface CharacterConsumer
@@ -513,7 +510,6 @@ public class TypeRegistry
 	
 	}
 	
-	@Documented
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	public @interface ArgumentList
@@ -521,7 +517,6 @@ public class TypeRegistry
 	
 	}
 	
-	@Documented
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	public @interface BuildValue

@@ -10,15 +10,26 @@ import java.util.*;
 public class AdaptiveArgumentList extends ArgumentList
 {
 	final ArrayList<ArgumentListEntry> lists = new ArrayList<>();
+	final boolean mustReachEnd = false;
 	
 	public AdaptiveArgumentList()
+	{
+		this(false);
+	}
+	
+	public AdaptiveArgumentList(boolean mustReachEnd)
 	{
 		addList();
 	}
 	
 	public static AdaptiveArgumentList create()
 	{
-		return new AdaptiveArgumentList();
+		return create(false);
+	}
+	
+	public static AdaptiveArgumentList create(boolean mustReachEnd)
+	{
+		return new AdaptiveArgumentList(mustReachEnd);
 	}
 	
 	public AdaptiveArgumentList addList()
@@ -62,33 +73,23 @@ public class AdaptiveArgumentList extends ArgumentList
 	}
 	
 	@Override
-	public ReturnResult<Object[]> interpret(Indexer<Character> source, Executor executor)
-	{
-		ReturnResult<AdaptiveInterpretation> result = compoundInterpret(source, executor);
-		if (result.success())
-			return new ReturnResult<>(result.value().description(), true, result.value().value());
-		else
-			return new ReturnResult<>(result.value().description());
-	}
-	
-	public ReturnResult<AdaptiveInterpretation> compoundInterpret(Indexer<Character> source, Executor executor)
+	public AdaptiveInterpretation interpret(Indexer<Character> source, Executor executor)
 	{
 		AdaptiveInterpretation.ResultContainer[] results = new AdaptiveInterpretation.ResultContainer[lists.size()];
 		
 		Result canExecute = canExecute(executor);
 		if (!canExecute.success())
-			return new ReturnResult<>(false, new AdaptiveInterpretation(RichStringBuilder.start().append("Can not execute: ").append(canExecute.description()).build(), -1, source,
-																		results));
+			return new AdaptiveInterpretation(RichStringBuilder.start().append("Can not execute: ").append(canExecute.description()).build(), -1, source, results);
 		
 		for (int index = 0; index < lists.size(); index++)
 		{
 			Indexer<Character> sourceCopy = source.copy();
 			ReturnResult<Object[]> result = lists.get(index).list.interpret(sourceCopy, executor);
 			results[index] = new AdaptiveInterpretation.ResultContainer(result, sourceCopy);
-			if (result.success())
-				return new ReturnResult<>(true, new AdaptiveInterpretation(result.description(), result.success(), index, result.value(), sourceCopy, results));
+			if (result.success() && (!mustReachEnd || sourceCopy.atEnd()))
+				return new AdaptiveInterpretation(result.description(), result.success(), index, result.value(), sourceCopy, results);
 		}
-		return new ReturnResult<>(false, new AdaptiveInterpretation(source, results));
+		return new AdaptiveInterpretation(source, results);
 	}
 	
 	@Override
