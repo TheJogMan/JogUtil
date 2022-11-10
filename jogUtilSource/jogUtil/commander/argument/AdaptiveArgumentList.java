@@ -10,7 +10,7 @@ import java.util.*;
 public class AdaptiveArgumentList extends ArgumentList
 {
 	final ArrayList<ArgumentListEntry> lists = new ArrayList<>();
-	final boolean mustReachEnd = false;
+	boolean mustReachEnd;
 	
 	public AdaptiveArgumentList()
 	{
@@ -19,6 +19,7 @@ public class AdaptiveArgumentList extends ArgumentList
 	
 	public AdaptiveArgumentList(boolean mustReachEnd)
 	{
+		this.mustReachEnd = mustReachEnd;
 		addList();
 	}
 	

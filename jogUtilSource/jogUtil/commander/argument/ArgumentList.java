@@ -129,10 +129,7 @@ public class ArgumentList implements Interpretable<Object[]>
 		for (Iterator<ArgumentEntry> iterator = arguments.iterator(); iterator.hasNext();)
 		{
 			ArgumentEntry entry = iterator.next();
-			String name = entry.argument().defaultName();
-			if (name == null)
-				name = entry.name();
-			builder.append("<").append(name).append(">");
+			builder.append("<").append(entry.name).append(">");
 			if (iterator.hasNext())
 				builder.append(" ");
 		}
@@ -171,36 +168,40 @@ public class ArgumentList implements Interpretable<Object[]>
 				ex.setStackTrace(e.getStackTrace());
 				throw ex;
 			}
-			try
+			if (name == null)
 			{
-				String defaultName = argument.defaultName();
-				if (defaultName != null)
-					this.name = defaultName;
+				try
+				{
+					String defaultName = argument.defaultName();
+					if (defaultName != null)
+						this.name = defaultName;
+				}
+				catch (Exception e)
+				{
+					RuntimeException ex = new RuntimeException("Could not get default name for argument (" + argumentClass.getName() + ") " + e.getMessage());
+					ex.setStackTrace(e.getStackTrace());
+					throw ex;
+				}
 			}
-			catch (Exception e)
-			{
-				RuntimeException ex = new RuntimeException("Could not get default name for argument (" + argumentClass.getName() + ") " + e.getMessage());
-				ex.setStackTrace(e.getStackTrace());
-				throw ex;
-			}
-			try
-			{
-				RichString defaultDescription = argument.defaultDescription();
-				if (defaultDescription != null)
-					this.description = description;
-			}
-			catch (Exception e)
-			{
-				RuntimeException ex = new RuntimeException("Could not get default description for argument (" + argumentClass.getName() + ") " + e.getMessage());
-				ex.setStackTrace(e.getStackTrace());
-				throw ex;
-			}
-			if (name != null)
+			else
 				this.name = name;
-			if (description != null)
+			if (description == null)
+			{
+				try
+				{
+					RichString defaultDescription = argument.defaultDescription();
+					if (defaultDescription != null)
+						this.description = description;
+				}
+				catch (Exception e)
+				{
+					RuntimeException ex = new RuntimeException("Could not get default description for argument (" + argumentClass.getName() + ") " + e.getMessage());
+					ex.setStackTrace(e.getStackTrace());
+					throw ex;
+				}
+			}
+			else
 				this.description = description;
-			if (this.description == null)
-				this.description = new RichString("No description.");
 		}
 		
 		public List<String> getCompletions(Indexer<Character> source, Executor executor)

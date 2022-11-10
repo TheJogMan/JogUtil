@@ -67,7 +67,9 @@ public class HelpCommand extends Command
 		builder.append("Variants:", Style.create().color(RichColor.ORANGE));
 		for (int index = 0; index < command.argumentListCount(); index++)
 			builder.newLine().append((index + 1) + ": ").append(command.fullName(index, true), Style.create().color(RichColor.AQUA));
-		builder.newLine().style(Style.create().color(RichColor.ORANGE)).append("Use ").append(command.helpCommandString()).append(" to learn about a specific variant.");
+		builder.newLine().style(Style.create().color(RichColor.GREEN)).append("Use ")
+			   .append(command.parent().helpCommand.fullName(2, true), Style.create().color(RichColor.LIME).highlighted(true))
+			   .append(" to learn about a specific variant.");
 		executor.respond(builder.build());
 	}
 	
@@ -134,9 +136,9 @@ public class HelpCommand extends Command
 					builder.append(", ");
 			}
 		}
-		builder.newLine().append("Use ", Style.create().color(RichColor.ORANGE))
-			   .append(category.helpCommand.fullName(1, true), Style.create().color(RichColor.GRAY).highlighted(true))
-			   .append(" to learn more.", Style.create().color(RichColor.ORANGE));
+		builder.newLine().append("Use ", Style.create().color(RichColor.GREEN))
+			   .append(category.helpCommand.fullName(1, true), Style.create().color(RichColor.LIME).highlighted(true))
+			   .append(" to learn more.", Style.create().color(RichColor.GREEN));
 		executor.respond(builder.build());
 	}
 }
