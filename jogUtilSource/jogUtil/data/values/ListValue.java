@@ -8,8 +8,7 @@ import jogUtil.richText.*;
 
 import java.util.*;
 
-public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<Value<?, ?>>>
-		implements List<Type>
+public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<Value<?, ?>>> implements List<Type>
 {
 	private final TypeRegistry.RegisteredType type;
 	final ArrayList<ListChangeListener<Type>> listeners = new ArrayList<>();
