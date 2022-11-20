@@ -137,7 +137,7 @@ public class Category extends CommandComponent
 			{
 				if (component instanceof Category)
 				{
-					if (((Category)component).followWithSpace == (source.get() == ' '))
+					if (((Category)component).followWithSpace == (!source.atEnd() && source.get() == ' '))
 					{
 						if (((Category)component).followWithSpace)
 							source.skip();
@@ -179,7 +179,7 @@ public class Category extends CommandComponent
 			{
 				if (component instanceof Category)
 				{
-					if (((Category)component).followWithSpace == (source.get() == ' '))
+					if (((Category)component).followWithSpace == (!source.atEnd() && source.get() == ' '))
 					{
 						if (((Category)component).followWithSpace)
 							source.skip();
@@ -196,12 +196,12 @@ public class Category extends CommandComponent
 		return completions;
 	}
 	
-	protected void addContextFiller(ContextFiller filler)
+	public void addContextFiller(ContextFiller filler)
 	{
 		contextFillers.add(filler);
 	}
 	
-	protected void removeContextFiller(ContextFiller filler)
+	public void removeContextFiller(ContextFiller filler)
 	{
 		contextFillers.remove(filler);
 	}
@@ -230,10 +230,12 @@ public class Category extends CommandComponent
 			for (ContextFiller filler : contextFillers)
 			{
 				Collection<CommandComponent> contextualizedComponents = filler.getComponents(executor);
+				if (contextualizedComponents == null)
+					continue;
 				for (CommandComponent component : contextualizedComponents)
 				{
 					component.parent = category;
-					contextualizedComponents.add(component);
+					this.contextualizedComponents.add(component);
 				}
 			}
 		}

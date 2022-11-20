@@ -66,7 +66,7 @@ public class HelpCommand extends Command
 		builder.append("Description:", Style.create().color(RichColor.ORANGE)).newLine().append(' ').append(command.description()).newLine();
 		builder.append("Variants:", Style.create().color(RichColor.ORANGE));
 		for (int index = 0; index < command.argumentListCount(); index++)
-			builder.newLine().append((index + 1) + ": ").append(command.fullName(index, true), Style.create().color(RichColor.AQUA));
+			builder.newLine().append((index + 1) + ": ").append(command.usage(index), Style.create().color(RichColor.AQUA));
 		builder.newLine().style(Style.create().color(RichColor.GREEN)).append("Use ")
 			   .append(command.parent().helpCommand.fullName(2, true), Style.create().color(RichColor.LIME).highlighted(true))
 			   .append(" to learn about a specific variant.");
@@ -79,16 +79,18 @@ public class HelpCommand extends Command
 		AdaptiveArgumentList.ArgumentListEntry argumentList = command.getArgumentList(variant);
 		builder.append("Description:", Style.create().color(RichColor.ORANGE)).newLine().append(' ').append((useCommandDescription ? command.description() : argumentList.description()));
 		builder.newLine().append("Usage:", Style.create().color(RichColor.ORANGE)).newLine();
-		builder.append(' ').append(command.fullName(variant, true), Style.create().color(RichColor.AQUA));
+		builder.append(' ').append(command.usage(variant), Style.create().color(RichColor.AQUA));
 		builder.newLine().append("Arguments:", Style.create().color(RichColor.ORANGE));
 		if (argumentList.list().argumentCount() == 0)
 			builder.newLine().append("None.", Style.create().highlighted(true));
 		else
+		{
 			for (int index = 0; index < argumentList.list().argumentCount(); index++)
 			{
 				ArgumentList.ArgumentEntry argument = argumentList.list().getArgument(index);
 				builder.newLine().append(' ').append(argument.name(), Style.create().highlighted(true).color(RichColor.AQUA)).append(" - ").append(argument.description());
 			}
+		}
 		executor.respond(builder.build());
 	}
 	

@@ -41,7 +41,7 @@ public interface Argument<ValueType> extends Interpretable<ValueType>
 	 */
 	public default RichString defaultDescription()
 	{
-		return new RichString("");
+		return null;
 	}
 	
 	/**

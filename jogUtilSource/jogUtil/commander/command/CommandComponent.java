@@ -32,8 +32,8 @@ public abstract class CommandComponent implements Interpretable<Boolean>
 		RichStringBuilder builder = RichStringBuilder.start();
 		if (parent != null)
 		{
-			builder.style(Style.create().color(RichColor.GRAY));
-			builder.append(parent.helpCommand.fullName() + " " + name());
+			builder.style(Style.create().color(RichColor.LIME));
+			builder.append(parent.helpCommand.fullName(true) + " " + name());
 			if (this instanceof Command)
 			{
 				int variantCount = ((Command)this).argumentListCount();

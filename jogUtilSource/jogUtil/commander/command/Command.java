@@ -63,6 +63,16 @@ public abstract class Command extends CommandComponent
 	
 	protected abstract void execute(AdaptiveInterpretation result, Executor executor);
 	
+	public String usage()
+	{
+		return usage(0);
+	}
+	
+	public String usage(int variant)
+	{
+		return fullName(variant, true);
+	}
+	
 	@Override
 	public String fullName()
 	{
@@ -94,7 +104,7 @@ public abstract class Command extends CommandComponent
 	 */
 	public String fullName(int variant, boolean includePrefix)
 	{
-		return super.fullName(includePrefix) + (variant == -1 ? "" : " " + argumentList.getList(variant).list());
+		return super.fullName(includePrefix) + (variant == -1 ? "" : " " + getArgumentList(variant).list());
 	}
 	
 	@Override
@@ -138,7 +148,7 @@ public abstract class Command extends CommandComponent
 			if (parent() != null)
 			{
 				builder.newLine();
-				builder.style(Style.create().color(RichColor.ORANGE)).append("Use ").append(helpCommandString()).append(" to learn more.");
+				builder.style(Style.create().color(RichColor.GREEN)).append("Use ").append(helpCommandString()).append(" to learn more.");
 			}
 			
 			executor.respond(builder.build());
