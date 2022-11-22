@@ -108,92 +108,13 @@ public class Category extends CommandComponent
 	@Override
 	public ReturnResult<Boolean> interpret(Indexer<Character> source, Executor executor)
 	{
-		Result canExecute = canExecute(executor);
-		if (!canExecute.success())
-		{
-			ReturnResult<Boolean> result = new ReturnResult<>(RichStringBuilder.start().append("You can not run this command: ", Style.create().color(RichColor.RED))
-																			   .append(canExecute.description()).build());
-			executor.respond(result.description());
-			return result;
-		}
-		
-		//if we are at the end of our source, then we want to run this category's help command
-		if (source.atEnd())
-		{
-			helpCommand.interpret((new IndexableArray<Character>(0)).iterator(), executor);
-			return new ReturnResult<>(true);
-		}
-		
-		int start = source.position();
-		for (CommandComponent component : getContext(executor, false))
-		{
-			//we can ignore any components that this executor can't execute
-			if (!component.canExecute(executor).success())
-				continue;
-			
-			source.setPosition(start);
-			//if we match a valid component, then we want to interpret that component
-			if (StringValue.consumeSequence(source, component.name(), false))
-			{
-				if (component instanceof Category)
-				{
-					if (((Category)component).followWithSpace == (!source.atEnd() && source.get() == ' '))
-					{
-						if (((Category)component).followWithSpace)
-							source.skip();
-					}
-					else
-						continue;
-				}
-				else if (component instanceof Command && !source.atEnd() && source.next() != ' ')
-					continue;
-				
-				return component.interpret(source, executor);
-			}
-		}
-		
-		//if we don't match any components, then the input was invalid
-		executor.respond("That command does not exist.");
-		return new ReturnResult<>("That command does not exist.");
+		return getContext(executor).interpret(source);
 	}
 	
 	@Override
 	public List<String> getCompletions(Indexer<Character> source, Executor executor)
 	{
-		if (!canExecute(executor).success())
-			return null;
-		
-		ArrayList<String> completions = new ArrayList<>();
-		int start = source.position();
-		for (CommandComponent component : getContext(executor, false))
-		{
-			//we can ignore any components that this executor can't execute
-			if (!component.canExecute(executor).success())
-				continue;
-			
-			completions.add(component.name());
-			
-			source.setPosition(start);
-			//if we already match a valid component, then we want to give that component's completions
-			if (StringValue.consumeSequence(source, component.name(), false))
-			{
-				if (component instanceof Category)
-				{
-					if (((Category)component).followWithSpace == (!source.atEnd() && source.get() == ' '))
-					{
-						if (((Category)component).followWithSpace)
-							source.skip();
-					}
-					else
-						continue;
-				}
-				else if (component instanceof Command && !source.atEnd() && source.next() != ' ')
-					continue;
-				
-				return component.getCompletions(source, executor);
-			}
-		}
-		return completions;
+		return getContext(executor).getCompletions(source);
 	}
 	
 	public void addContextFiller(ContextFiller filler)
@@ -219,15 +140,17 @@ public class Category extends CommandComponent
 		return new Context(executor, this);
 	}
 	
-	public class Context implements Iterable<CommandComponent>
+	public static class Context implements Iterable<CommandComponent>
 	{
 		final ArrayList<CommandComponent> contextualizedComponents = new ArrayList<>();
 		final Executor contextSource;
+		final Category category;
 		
 		private Context(Executor executor, Category category)
 		{
 			contextSource = executor;
-			for (ContextFiller filler : contextFillers)
+			this.category = category;
+			for (ContextFiller filler : category.contextFillers)
 			{
 				Collection<CommandComponent> contextualizedComponents = filler.getComponents(executor);
 				if (contextualizedComponents == null)
@@ -238,6 +161,98 @@ public class Category extends CommandComponent
 					this.contextualizedComponents.add(component);
 				}
 			}
+		}
+		
+		public ReturnResult<Boolean> interpret(Indexer<Character> source)
+		{
+			Result canExecute = category.canExecute(contextSource, false);
+			if (!canExecute.success())
+			{
+				ReturnResult<Boolean> result = new ReturnResult<>(RichStringBuilder.start().append("You can not run this command: ", Style.create().color(RichColor.RED))
+																				   .append(canExecute.description()).build());
+				contextSource.respond(result.description());
+				return result;
+			}
+			
+			//if we are at the end of our source, then we want to run this category's help command
+			if (source.atEnd())
+			{
+				category.helpCommand.interpret((new IndexableArray<Character>(0)).iterator(), contextSource);
+				return new ReturnResult<>(true);
+			}
+			
+			int start = source.position();
+			for (CommandComponent component : this)
+			{
+				//we can ignore any components that this executor can't execute
+				if (!component.canExecute(contextSource).success())
+					continue;
+				
+				source.setPosition(start);
+				//if we match a valid component, then we want to interpret that component
+				if (StringValue.consumeSequence(source, component.name(), false))
+				{
+					if (!ensureValidEnd(component, source))
+						continue;
+					
+					return component.interpret(source, contextSource);
+				}
+			}
+			
+			//if we don't match any components, then the input was invalid
+			contextSource.respond("That command does not exist.");
+			return new ReturnResult<>("That command does not exist.");
+		}
+		
+		private static boolean ensureValidEnd(CommandComponent component, Indexer<Character> source)
+		{
+			if (component instanceof Category subCategory)
+			{
+				if (subCategory.followWithSpace)
+				{
+					if (!source.atEnd() && source.get() == ' ')
+						source.skip();
+				}
+				else
+					return source.atEnd() || source.get() != ' ';
+			}
+			else if (component instanceof Command && !source.atEnd())
+			{
+				if (source.get() == ' ')
+					source.skip();
+				else
+					return false;
+			}
+			
+			return true;
+		}
+		
+		public List<String> getCompletions(Indexer<Character> source)
+		{
+			if (!category.canExecute(contextSource, false).success())
+				return null;
+			
+			ArrayList<String> completions = new ArrayList<>();
+			int start = source.position();
+			for (CommandComponent component : this)
+			{
+				//we can ignore any components that this executor can't execute
+				if (!component.canExecute(contextSource).success())
+					continue;
+				
+				completions.add(component.name());
+				
+				source.setPosition(start);
+				//if we already match a valid component, then we want to give that component's completions
+				if (StringValue.consumeSequence(source, component.name(), false))
+				{
+					if (!ensureValidEnd(component, source))
+						continue;
+					
+					return component.getCompletions(source, contextSource);
+				}
+			}
+			return completions;
 		}
 		
 		public Executor contextSource()
@@ -268,17 +283,17 @@ public class Category extends CommandComponent
 			@Override
 			public boolean hasNext()
 			{
-				return index < contextualizedComponents.size() + components.size();
+				return index < contextualizedComponents.size() + category.components.size();
 			}
 			
 			@Override
 			public CommandComponent next()
 			{
 				CommandComponent component;
-				if (index < components.size())
-					component = components.get(index).getValue();
-				else if (index - components.size() < contextualizedComponents.size())
-					component = contextualizedComponents.get(index - components.size());
+				if (index < category.components.size())
+					component = category.components.get(index).getValue();
+				else if (index - category.components.size() < contextualizedComponents.size())
+					component = contextualizedComponents.get(index - category.components.size());
 				else
 					component = null;
 				index++;

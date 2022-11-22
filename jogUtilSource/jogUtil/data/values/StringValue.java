@@ -453,8 +453,7 @@ public class StringValue extends Value<String, String>
 	 * @param caseSensitive
 	 * @return
 	 */
-	public static boolean consumeSequence(Indexer<Character> source, String sequence,
-										  boolean caseSensitive)
+	public static boolean consumeSequence(Indexer<Character> source, String sequence, boolean caseSensitive)
 	{
 		int position = source.position();
 		int index = 0;
@@ -467,6 +466,8 @@ public class StringValue extends Value<String, String>
 				ch = Character.toLowerCase(ch);
 			if (sequence.charAt(index) == ch)
 				index++;
+			else
+				break;
 			if (index == sequence.length())
 				return true;
 		}

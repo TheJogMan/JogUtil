@@ -10,10 +10,19 @@ import java.util.*;
 
 public class WordArgument extends PlainArgument<String>
 {
+	boolean addBrackets = true;
+	
 	@Override
 	public void initArgument(Object[] data)
 	{
+		if (data.length == 1 && data[0] instanceof Boolean value)
+			addBrackets = value;
+	}
 	
+	@Override
+	public boolean addBrackets()
+	{
+		return addBrackets;
 	}
 	
 	@Override

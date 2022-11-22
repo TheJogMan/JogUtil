@@ -129,7 +129,11 @@ public class ArgumentList implements Interpretable<Object[]>
 		for (Iterator<ArgumentEntry> iterator = arguments.iterator(); iterator.hasNext();)
 		{
 			ArgumentEntry entry = iterator.next();
-			builder.append("<").append(entry.name).append(">");
+			if (entry.argument.addBrackets())
+				builder.append("<");
+			builder.append(entry.name);
+			if (entry.argument.addBrackets())
+				builder.append(">");
 			if (iterator.hasNext())
 				builder.append(" ");
 		}

@@ -93,6 +93,19 @@ public interface Argument<ValueType> extends Interpretable<ValueType>
 	public void setCompletionBehavior(CompletionBehavior behavior);
 	
 	/**
+	 * Whether brackets should be added around this argument in a list of arguments.
+	 * <p>
+	 *     Default implementation always returns true, but an argument's implementation is free to
+	 *     override it.
+	 * </p>
+	 * @return
+	 */
+	public default boolean addBrackets()
+	{
+		return true;
+	}
+	
+	/**
 	 * 
 	 * @return
 	 * @see #setCompletionBehavior(CompletionBehavior)
