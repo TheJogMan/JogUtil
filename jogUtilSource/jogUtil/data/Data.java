@@ -248,8 +248,7 @@ public class Data implements Iterable<Value<?, ?>>
 		{
 			TypeRegistry.RegisteredType type = TypeRegistry.get(value.getClass());
 			if (type == null)
-				throw new RuntimeException("Can not convert data to bytes: "
-										   + value.getClass() + " isn't a registered type.");
+				throw new RuntimeException("Can not convert data to bytes: " + value.getClass() + " isn't a registered type.");
 			if (!typeIndex.contains(type))
 				typeIndex.add(type);
 		}

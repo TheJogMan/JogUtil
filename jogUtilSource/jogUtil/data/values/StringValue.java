@@ -102,6 +102,15 @@ public class StringValue extends Value<String, String>
 	
 	}
 	
+	public static Consumer.ConsumptionResult<String, Byte> primitiveByteConsume(Indexer<Byte> source)
+	{
+		Consumer.ConsumptionResult<Value<?, String>, Byte> result = getByteConsumer().consume(source);
+		if (result.success())
+			return new Consumer.ConsumptionResult<>((String)result.value().get(), source,  result.description());
+		else
+			return new Consumer.ConsumptionResult<>(source, result.description());
+	}
+	
 	@TypeRegistry.ByteConsumer
 	public static Consumer<Value<?, String>, Byte> getByteConsumer()
 	{
@@ -120,6 +129,15 @@ public class StringValue extends Value<String, String>
 			return new Consumer.ConsumptionResult<>(new StringValue(
 					fromByteData(builder.toPrimitiveArray())), source);
 		};
+	}
+	
+	public static Consumer.ConsumptionResult<String, Character> primitiveCharacterConsume(Indexer<Character> source)
+	{
+		Consumer.ConsumptionResult<Value<?, String>, Character> result = getCharacterConsumer().consume(source);
+		if (result.success())
+			return new Consumer.ConsumptionResult<>((String)result.value().get(), source,  result.description());
+		else
+			return new Consumer.ConsumptionResult<>(source, result.description());
 	}
 	
 	@TypeRegistry.CharacterConsumer
