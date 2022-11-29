@@ -11,6 +11,7 @@ public abstract class CommandComponent implements Interpretable<Boolean>
 	private final ArrayList<ExecutorFilter.Filter> filters = new ArrayList<>();
 	private final ArrayList<ExecutorFilter.Transformer> transformers = new ArrayList<>();
 	private final String name;
+	private final ArrayList<String> aliases = new ArrayList<>();
 	private final RichString description;
 	Category parent;
 	
@@ -38,7 +39,7 @@ public abstract class CommandComponent implements Interpretable<Boolean>
 			{
 				int variantCount = ((Command)this).argumentListCount();
 				if (variantCount >= 2)
-					builder.append(" <").append(parent.helpCommand.getArgumentList(2).list().getArgument(1).name()).append(">");
+					builder.append(" <").append(parent.helpCommand.getArgumentList(3).list().getArgument(1).name()).append(">");
 			}
 		}
 		return builder.build();
@@ -52,6 +53,43 @@ public abstract class CommandComponent implements Interpretable<Boolean>
 	public String name()
 	{
 		return name;
+	}
+	
+	public boolean isName(String name)
+	{
+		return isName(name, false);
+	}
+	
+	public boolean isName(String name, boolean caseSensitive)
+	{
+		if ((caseSensitive && name.equals(this.name)) || (!caseSensitive && name.equalsIgnoreCase(this.name)))
+			return true;
+		for (String alias : aliases)
+		{
+			if ((caseSensitive && name.equals(alias)) || (!caseSensitive && name.equalsIgnoreCase(alias)))
+				return true;
+		}
+		return false;
+	}
+	
+	public int aliasCount()
+	{
+		return aliases.size();
+	}
+	
+	public String alias(int index)
+	{
+		return aliases.get(index);
+	}
+	
+	public Iterator<String> aliasIterator()
+	{
+		return aliases.iterator();
+	}
+	
+	public void addAlias(String alias)
+	{
+		aliases.add(alias);
 	}
 	
 	public RichString description()

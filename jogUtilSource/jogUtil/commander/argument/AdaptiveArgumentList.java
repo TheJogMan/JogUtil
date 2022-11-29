@@ -90,7 +90,7 @@ public class AdaptiveArgumentList extends ArgumentList
 			if (result.success() && (!mustReachEnd || sourceCopy.atEnd()))
 				return new AdaptiveInterpretation(result.description(), result.success(), index, result.value(), sourceCopy, results);
 		}
-		return new AdaptiveInterpretation(source, results);
+		return new AdaptiveInterpretation(results[0].result().description(), 0, results[0].source(), results);
 	}
 	
 	@Override

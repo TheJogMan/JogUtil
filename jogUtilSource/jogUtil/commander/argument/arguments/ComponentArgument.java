@@ -42,6 +42,13 @@ public class ComponentArgument extends PlainArgument<CommandComponent>
 		{
 			if (component.name().toLowerCase().startsWith(token) && filter.isAssignableFrom(component.getClass()))
 				completions.add(component.name());
+			for (Iterator<String> aliasIterator = component.aliasIterator(); aliasIterator.hasNext(); )
+			{
+				String alias = aliasIterator.next();
+				
+				if (alias.toLowerCase().startsWith(token) && filter.isAssignableFrom(component.getClass()))
+					completions.add(alias);
+			}
 		}
 		return completions;
 	}

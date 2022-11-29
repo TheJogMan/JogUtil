@@ -199,6 +199,28 @@ public class Category extends CommandComponent
 				}
 			}
 			
+			//if we don't match any components by proper name, then we check aliases
+			for (CommandComponent component : this)
+			{
+				//we can ignore any components that this executor can't execute
+				if (!component.canExecute(contextSource).success())
+					continue;
+				
+				source.setPosition(start);
+				//if we match a valid component, then we want to interpret that component
+				for (Iterator<String> aliasIterator = component.aliasIterator(); aliasIterator.hasNext();)
+				{
+					String alias = aliasIterator.next();
+					if (StringValue.consumeSequence(source, alias, false))
+					{
+						if (!ensureValidEnd(component, source))
+							continue;
+						
+						return component.interpret(source, contextSource);
+					}
+				}
+			}
+			
 			//if we don't match any components, then the input was invalid
 			contextSource.respond("That command does not exist.");
 			return new ReturnResult<>("That command does not exist.");
@@ -241,6 +263,8 @@ public class Category extends CommandComponent
 					continue;
 				
 				completions.add(component.name());
+				for (Iterator<String> aliasIterator = component.aliasIterator(); aliasIterator.hasNext();)
+					completions.add(aliasIterator.next());
 				
 				source.setPosition(start);
 				//if we already match a valid component, then we want to give that component's completions
@@ -266,6 +290,15 @@ public class Category extends CommandComponent
 			{
 				if (component.name().equalsIgnoreCase(name))
 					return component;
+			}
+			for (CommandComponent component : this)
+			{
+				for (Iterator<String> aliasIterator = component.aliasIterator(); aliasIterator.hasNext();)
+				{
+					String alias = aliasIterator.next();
+					if (alias.equalsIgnoreCase(name))
+						return component;
+				}
 			}
 			return null;
 		}

@@ -40,6 +40,6 @@ public class WordArgument extends PlainArgument<String>
 	@Override
 	public ReturnResult<String> interpretArgument(Indexer<Character> source, Executor executor)
 	{
-		return new ReturnResult<>(StringValue.consumeString(source, ' '));
+		return new ReturnResult<>(true, StringValue.consumeString(source, ' '));
 	}
 }
