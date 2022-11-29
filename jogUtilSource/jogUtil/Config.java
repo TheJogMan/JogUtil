@@ -290,7 +290,7 @@ public class Config
 		
 		private class Get extends Command
 		{
-			Setting<Type> setting;
+			final Setting<Type> setting;
 			
 			private Get(Category parent, Setting<Type> setting)
 			{

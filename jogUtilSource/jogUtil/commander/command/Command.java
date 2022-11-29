@@ -382,7 +382,7 @@ public abstract class Command extends CommandComponent
 			void execute(AdaptiveInterpretation result, Executor executor);
 		}
 		
-		CommandExecutor executor;
+		final CommandExecutor executor;
 		
 		@Override
 		public void execute(AdaptiveInterpretation result, Executor executor)
