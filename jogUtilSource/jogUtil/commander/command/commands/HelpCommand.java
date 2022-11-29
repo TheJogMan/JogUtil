@@ -17,12 +17,12 @@ public class HelpCommand extends Command
 		
 		setDefaultListDescription("See a list of available commands and sub-categories.");
 		addArgumentList("See a specific page of available commands and sub-categories.");
-		addArgument(1, IntegerValue.class, "Page");
+		addArgument(1, IntegerValue.class, "Page", new Object[0], "Index of page to view.");
 		addArgumentList("See information about a specific component.");
-		addArgument(2, ComponentArgument.class, "Command/Category", new Object[] {parent});
+		addArgument(2, ComponentArgument.class, "Command/Category", new Object[] {parent}, "Component to view.");
 		addArgumentList("See information about a specific variation of a commands arguments.");
-		addArgument(3, ComponentArgument.class, "Command", new Object[] {parent, Command.class});
-		addArgument(3, IntegerValue.class, "Variant");
+		addArgument(3, ComponentArgument.class, "Command", new Object[] {parent, Command.class}, "Command to view.");
+		addArgument(3, IntegerValue.class, "Variant", new Object[0], "Variant of command to view.");
 	}
 	
 	@Override

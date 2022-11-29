@@ -255,7 +255,7 @@ public class Config
 			private Set(Category parent)
 			{
 				super(parent, "Set", "Set the value.");
-				addArgument(type.typeClass(), argumentData);
+				addArgument(type.typeClass(), argumentData, "New value.");
 			}
 			
 			@Override
