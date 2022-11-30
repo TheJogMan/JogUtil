@@ -194,11 +194,20 @@ public class Indexer<Type> implements Iterator<Type>
 	 */
 	private void skipUnwanted()
 	{
-		while (hasNext(false) && !filterCheck(indexable.get(index)))
+		boolean pass = false;
+		while (!pass)
 		{
-			if (!hasNext(false) && !complete())
+			if (hasNext(false))
+			{
+				if (filterCheck(indexable.get(index)))
+					pass = true;
+				else
+					index++;
+			}
+			else if (complete())
+				return;
+			else
 				indexable.waitForData();
-			index++;
 		}
 	}
 	
@@ -235,9 +244,8 @@ public class Indexer<Type> implements Iterator<Type>
 		if (applyFilter)
 			skipUnwanted();
 		if (index < indexable.size())
-			return indexable.get(index);
-		else
-			return null;
+			indexable.waitForData();
+		return indexable.get(index);
 	}
 	
 	/**

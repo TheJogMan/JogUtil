@@ -2,14 +2,17 @@ package jogUtil;
 
 import jogUtil.commander.*;
 import jogUtil.commander.argument.*;
-import jogUtil.commander.command.*;
+import jogUtil.commander.command.Console;
 import jogUtil.data.*;
 import jogUtil.data.values.*;
+import jogUtil.indexable.*;
 import jogUtil.richText.*;
+
+import java.io.*;
 
 public class Main
 {
-	public static void main(String[] args)
+	public static void main(String[] args) throws IOException
 	{
 		Result[] results = TypeRegistry.defaultValueStatus();
 		
@@ -33,6 +36,25 @@ public class Main
 			System.out.println(result.description());
 		
 		System.out.println(TypeRegistry.register("Test", CompoundArgumentValueTest.class).description());
+		
+		Data data = new Data();
+		data.put("test1", new IntegerValue(1));
+		data.put("test2", new IntegerValue(2));
+		data.put("test3", new IntegerValue(3));
+		data.put("test4", new StringValue("Hello World!"));
+		data.put("test5", new BooleanValue(false));
+		
+		File file = new File("test.txt");
+		
+		FileWriter writer = new FileWriter(file);
+		writer.write(data.toString());
+		writer.close();
+		Consumer.ConsumptionResult<Data, Character> result = Data.characterConsumer().consume(new IndexableReader(new FileReader(file)).iterator());
+		if (!result.success())
+			System.out.println("Could not parse file: " + result.description().encode(EncodingType.PLAIN));
+		Data data2 = result.value;
+		if (!data2.matches(data))
+			System.out.println("Parsed data did not match original.");
 	}
 	
 	public static record TestValue(String string, int number)

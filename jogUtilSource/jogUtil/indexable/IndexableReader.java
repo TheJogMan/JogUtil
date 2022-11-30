@@ -81,7 +81,10 @@ public class IndexableReader extends Indexable<Character>
 	@Override
 	public Character get(int index)
 	{
-		return characters.get(index);
+		if (index >= 0 && index < characters.size())
+			return characters.get(index);
+		else
+			return null;
 	}
 	
 	@Override

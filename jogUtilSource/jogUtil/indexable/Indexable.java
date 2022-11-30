@@ -44,7 +44,7 @@ public abstract class Indexable<Type> implements Collection<Type>
 	 *     New data should be available once the thread resumes, but this can't be guaranteed.  While not required, it is
 	 *     recommended to verify that new data is available before trying to access it.<br>
 	 *     <br>
-	 *     If the indexable is complete the thread will not yield and this method will return immediately.
+	 *     If the indexable is already complete the thread will not yield and this method will return immediately.
 	 * </p>
 	 */
 	public final void waitForData()

@@ -116,22 +116,22 @@ public class Config
 		return (ArrayList<Setting<?>>)settings.clone();
 	}
 	
-	public <Type> Setting<Type> createSetting(String name, TypeRegistry.RegisteredType type, Type defaultValue, String description)
+	public <Type> Setting<Type> createSetting(String name, TypeRegistry.RegisteredType type, Value<Type, Type> defaultValue, String description)
 	{
 		return createSetting(name, type, defaultValue, new RichString(description), new Object[0]);
 	}
 	
-	public <Type> Setting<Type> createSetting(String name, TypeRegistry.RegisteredType type, Type defaultValue, String description, Object[] argumentData)
+	public <Type> Setting<Type> createSetting(String name, TypeRegistry.RegisteredType type, Value<Type, Type> defaultValue, String description, Object[] argumentData)
 	{
 		return createSetting(name, type, defaultValue, new RichString(description));
 	}
 	
-	public <Type> Setting<Type> createSetting(String name, TypeRegistry.RegisteredType type, Type defaultValue, RichString description)
+	public <Type> Setting<Type> createSetting(String name, TypeRegistry.RegisteredType type, Value<Type, Type> defaultValue, RichString description)
 	{
 		return createSetting(name, type, defaultValue, description, new Object[0]);
 	}
 	
-	public <Type> Setting<Type> createSetting(String name, TypeRegistry.RegisteredType type, Type defaultValue, RichString description, Object[] argumentData)
+	public <Type> Setting<Type> createSetting(String name, TypeRegistry.RegisteredType type, Value<Type, Type> defaultValue, RichString description, Object[] argumentData)
 	{
 		if (name.indexOf(' ') != -1)
 			throw new IllegalArgumentException("Setting name can not contain a space");
@@ -162,14 +162,14 @@ public class Config
 		
 		private final String name;
 		private Value<Type, Type> value;
-		private final Type defaultValue;
+		private final Value<Type, Type> defaultValue;
 		private final TypeRegistry.RegisteredType type;
 		private final SaveListener listener = new SaveListener();
 		private final ArrayList<ChangeListener<Type>> listeners = new ArrayList<>();
 		private final RichString description;
 		private final Object[] argumentData;
 		
-		Setting(String name, TypeRegistry.RegisteredType type, Type defaultValue, RichString description, Object[] argumentData)
+		Setting(String name, TypeRegistry.RegisteredType type, Value<Type, Type> defaultValue, RichString description, Object[] argumentData)
 		{
 			this.name = name;
 			this.defaultValue = defaultValue;
@@ -194,9 +194,7 @@ public class Config
 		
 		private Value<Type, Type> defaultValue()
 		{
-			Value<Type, Type> value = this.value.copy();
-			value.set(defaultValue);
-			return value;
+			return defaultValue.copy();
 		}
 		
 		/*
@@ -239,7 +237,7 @@ public class Config
 		
 		public void reset()
 		{
-			value.set(defaultValue);
+			value.set(defaultValue.get());
 		}
 		
 		public void addCommands(Category parent)
@@ -282,7 +280,7 @@ public class Config
 			{
 				RichStringBuilder builder = new RichStringBuilder();
 				builder.append("Changed from " + value.toString() + " to ");
-				value.set(defaultValue);
+				value.set(defaultValue.get());
 				builder.append(value.toString() + ".");
 				executor.respond(builder.build());
 			}
