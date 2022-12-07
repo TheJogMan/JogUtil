@@ -113,6 +113,24 @@ public class IntegerValue extends Value<Integer, Integer>
 		};
 	}
 	
+	public static Consumer.ConsumptionResult<Integer, Byte> simpleByteConsume(Indexer<Byte> source)
+	{
+		Consumer.ConsumptionResult<Value<?, Integer>, Byte> result = getByteConsumer().consume(source);
+		if (result.success())
+			return new Consumer.ConsumptionResult<>((Integer)result.value().get(), source, result.description());
+		else
+			return new Consumer.ConsumptionResult<>(source, result.description());
+	}
+	
+	public static Consumer.ConsumptionResult<Integer, Character> simpleCharacterConsume(Indexer<Character> source)
+	{
+		Consumer.ConsumptionResult<Value<?, Integer>, Character> result = getCharacterConsumer().consume(source);
+		if (result.success())
+			return new Consumer.ConsumptionResult<>((Integer)result.value().get(), source, result.description());
+		else
+			return new Consumer.ConsumptionResult<>(source, result.description());
+	}
+	
 	public static byte[] toByteData(int value)
 	{
 		ByteBuffer buffer = ByteBuffer.allocate(4);

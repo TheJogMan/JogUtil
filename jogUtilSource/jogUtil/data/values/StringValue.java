@@ -427,6 +427,22 @@ public class StringValue extends Value<String, String>
 		return builder.toString();
 	}
 	
+	public static String consumeAlphabeticalString(Indexer<Character> source)
+	{
+		StringBuilder builder = new StringBuilder();
+		while (!source.atEnd() && Character.isLetter(source.get()))
+			builder.append(source.next());
+		return builder.toString();
+	}
+	
+	public static String consumeNumericString(Indexer<Character> source)
+	{
+		StringBuilder builder = new StringBuilder();
+		while (!source.atEnd() && Character.isDigit(source.get()))
+			builder.append(source.next());
+		return builder.toString();
+	}
+	
 	/**
 	 * Consumes an amount of characters into a string.
 	 * <p>
