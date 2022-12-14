@@ -145,7 +145,7 @@ public class StringValue extends Value<String, String>
 	{
 		return (source) ->
 		{
-			if (source.get() == '"')
+			if (!source.atEnd() && source.get() == '"')
 			{
 				StringBuilder builder = new StringBuilder();
 				builder.append(source.next());

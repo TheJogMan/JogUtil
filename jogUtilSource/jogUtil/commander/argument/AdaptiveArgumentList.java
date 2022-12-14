@@ -80,7 +80,7 @@ public class AdaptiveArgumentList extends ArgumentList
 		
 		Result canExecute = canExecute(executor);
 		if (!canExecute.success())
-			return new AdaptiveInterpretation(RichStringBuilder.start().append("Can not execute: ").append(canExecute.description()).build(), -1, source, results);
+			return new AdaptiveInterpretation(RichStringBuilder.start().append("Can not execute: ").append(canExecute.description()).build(), -1, source, results, executor);
 		
 		for (int index = 0; index < lists.size(); index++)
 		{
@@ -88,9 +88,9 @@ public class AdaptiveArgumentList extends ArgumentList
 			ReturnResult<Object[]> result = lists.get(index).list.interpret(sourceCopy, executor);
 			results[index] = new AdaptiveInterpretation.ResultContainer(result, sourceCopy);
 			if (result.success() && (!mustReachEnd || sourceCopy.atEnd()))
-				return new AdaptiveInterpretation(result.description(), result.success(), index, result.value(), sourceCopy, results);
+				return new AdaptiveInterpretation(result.description(), result.success(), index, result.value(), sourceCopy, results, executor);
 		}
-		return new AdaptiveInterpretation(results[0].result().description(), 0, results[0].source(), results);
+		return new AdaptiveInterpretation(results[0].result().description(), 0, results[0].source(), results, executor);
 	}
 	
 	@Override

@@ -230,7 +230,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 		};
 	}
 	
-	private static <Type extends Value<?, ?>> ListValue<Type> makeValidationList(Class<Type> typeClass)
+	private static <ValueType, ConsumptionResult, Type extends Value<ValueType, ConsumptionResult>> ListValue<Type> makeValidationList(Class<Type> typeClass)
 	{
 		TypeRegistry.RegisteredType type = TypeRegistry.get(typeClass);
 		if (type == null)

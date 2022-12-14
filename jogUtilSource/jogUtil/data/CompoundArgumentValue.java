@@ -46,26 +46,33 @@ public abstract class CompoundArgumentValue<ValueType, ConsumptionType> extends 
 		return null;
 	}
 	
+	public TypeRegistry.RegisteredCompoundType<ValueType, ConsumptionType> compoundType()
+	{
+		return (TypeRegistry.RegisteredCompoundType<ValueType, ConsumptionType>)type();
+	}
+	
 	public AdaptiveArgumentList argumentList()
 	{
-		return type().argumentList(initData);
+		return compoundType().argumentList(initData);
 	}
 	
 	public ConsumptionType buildValue(AdaptiveInterpretation result, Executor executor)
 	{
-		return (ConsumptionType)type().buildValue(result, executor);
+		return compoundType().buildValue(result, executor);
 	}
 	
-	public static Consumer<Value<?, ?>, Character> compoundCharacterConsumer(TypeRegistry.RegisteredType type)
+	public static <ValueType, ConsumptionType> Consumer<Value<?, ConsumptionType>, Character> compoundCharacterConsumer(TypeRegistry.RegisteredCompoundType<ValueType, ConsumptionType> type)
 	{
-		if (!type.compoundArgument)
-			return null;
-		
+		return compoundCharacterConsumer(type, new Object[0]);
+	}
+	
+	public static <ValueType, ConsumptionType> Consumer<Value<?, ConsumptionType>, Character> compoundCharacterConsumer(TypeRegistry.RegisteredCompoundType<ValueType, ConsumptionType> type, Object[] data)
+	{
 		return (source) ->
 		{
 			Executor executor = new Executor.HeadlessExecutor();
 			//get the argument list
-			AdaptiveArgumentList list = type.argumentList(new Object[0]);
+			AdaptiveArgumentList list = type.argumentList(data);
 			
 			//interpret the list, and make sure it was successful
 			AdaptiveInterpretation result = list.interpret(source, executor);
@@ -79,7 +86,7 @@ public abstract class CompoundArgumentValue<ValueType, ConsumptionType> extends 
 			//create the Value object and set the value, then make sure nothing went wrong
 			try
 			{
-				Value<?, ?> value = type.typeClass.getConstructor().newInstance();
+				Value<?, ConsumptionType> value = type.typeClass.getConstructor().newInstance();
 				Result setResult = value.internalSet(object);
 				if (setResult.success())
 					return new Consumer.ConsumptionResult<>(value, result.indexer());

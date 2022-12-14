@@ -215,7 +215,7 @@ public class Data implements Iterable<Value<?, ?>>
 		for (int valueIndex = 0; valueIndex < values.size(); valueIndex++)
 		{
 			KeyedList.KeyedEntry<String, Value<?, ?>> entry = values.get(valueIndex);
-			TypeRegistry.RegisteredType type = TypeRegistry.get(entry.getValue().getClass());
+			TypeRegistry.RegisteredType<?, ?> type = entry.getValue().type();
 			if (type == null)
 				throw new RuntimeException("Can not convert data to string: "
 										   + entry.getValue().getClass() + " isn't a registered type.");
@@ -246,7 +246,7 @@ public class Data implements Iterable<Value<?, ?>>
 		ArrayList<TypeRegistry.RegisteredType> typeIndex = new ArrayList<>();
 		for (Value<?, ?> value : this)
 		{
-			TypeRegistry.RegisteredType type = TypeRegistry.get(value.getClass());
+			TypeRegistry.RegisteredType type = value.type();
 			if (type == null)
 				throw new RuntimeException("Can not convert data to bytes: " + value.getClass() + " isn't a registered type.");
 			if (!typeIndex.contains(type))
@@ -260,7 +260,7 @@ public class Data implements Iterable<Value<?, ?>>
 		builder.add(size());
 		for (Value<?, ?> value : this)
 		{
-			TypeRegistry.RegisteredType type = TypeRegistry.get(value.getClass());
+			TypeRegistry.RegisteredType type = value.type();
 			int typeNumber = typeIndex.indexOf(type);
 			
 			builder.add(typeNumber);

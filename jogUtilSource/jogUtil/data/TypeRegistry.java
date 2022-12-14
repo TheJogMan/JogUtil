@@ -4,6 +4,7 @@ import jogUtil.*;
 import jogUtil.commander.*;
 import jogUtil.commander.argument.*;
 import jogUtil.data.values.*;
+import jogUtil.indexable.*;
 import jogUtil.richText.*;
 
 import java.lang.annotation.*;
@@ -12,299 +13,23 @@ import java.util.*;
 
 public class TypeRegistry
 {
-	private static final HashMap<String, RegisteredType> nameMap = new HashMap<>();
-	private static final HashMap<Class<?>, RegisteredType> classMap = new HashMap<>();
-	private static final RequiredMethod[] plainArgumentMethods = plainArgumentMethods();
-	private static final RequiredMethod[] compoundArgumentMethods = compoundArgumentMethods();
-	private static final ReturnResult<Result[]> defaultValueStatus = registerDefaults();
-	
-	private static ReturnResult<Result[]> registerDefaults()
-	{
-		Object[][] typeClasses = {
-				{"Byte", ByteValue.class},
-				{"Boolean", BooleanValue.class},
-				{"Short", ShortValue.class},
-				{"Character", CharacterValue.class},
-				{"Integer", IntegerValue.class},
-				{"Float", FloatValue.class},
-				{"Long", LongValue.class},
-				{"Double", DoubleValue.class},
-				{"UUID", UUIDValue.class},
-				{"String", StringValue.class},
-				
-				{"List", ListValue.class},
-				{"Data", DataValue.class}
-		};
-		
-		Result[] registrationResults = new Result[typeClasses.length];
-		for (int index = 0; index < typeClasses.length; index++)
-		{
-			Class<? extends Value<?, ?>> typeClass = (Class<? extends Value<?, ?>>)typeClasses[index][1];
-			String name = (String)typeClasses[index][0];
-			Result result = register(name, typeClass);
-			if (!result.success())
-				throw new RuntimeException("Could not register default value: " + result.description());
-			registrationResults[index] = result;
-		}
-		
-		return new ReturnResult<>(registrationResults);
-	}
-	
-	public static Result register(String name, Class<? extends Value<?, ?>> typeClass)
-	{
-		//make sure nothing has already been registered with this name or class
-		if (classMap.containsKey(typeClass))
-			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Already registered.");
-		if (nameMap.containsKey(name))
-			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Another type is already registered under that name.");
-		
-		//verify that the implementation is valid, and create the registration
-		ReturnResult<RegisteredType> creationResult = RegisteredType.create(name, typeClass);
-		if (!creationResult.success())
-			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Not a valid value type implementation: " + creationResult.description());
-		classMap.put(typeClass, creationResult.value());
-		nameMap.put(name, creationResult.value());
-		
-		//validate that the implementation behaves as expected
-		Result validationResult = validate(creationResult.value());
-		if (!validationResult.success())
-		{
-			nameMap.remove(name);
-			classMap.remove(typeClass);
-			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Validation Failure: " + validationResult.description());
-		}
-		else
-			return new Result(typeClass.getName() + " registered as " + name, true);
-	}
-	
-	private static Result validate(RegisteredType type)
-	{
-		//retrieve the array of validation values and make sure it has at least one entry
-		Value<?, ?>[] values;
-		try
-		{
-			values = (Value<?, ?>[])type.validationValues.invoke(null);
-		}
-		catch (Exception e)
-		{
-			return new Result("Exception occurred getting validation values, " + Result.describeThrowableFull(e));
-		}
-		if (values == null)
-			return new Result("Validation values can not be null.");
-		if (values.length == 0)
-			return new Result("There must be at least one validation value.");
-		
-		//check validation values
-		Result validationResult;
-		for (int index = 0; index < values.length; index++)
-		{
-			validationResult = values[index].validate();
-			if (!validationResult.success())
-				return new Result(RichStringBuilder.start("Validation value #" + index + " failed: ").append(validationResult.description()).build());
-		}
-		
-		return new Result();
-	}
-	
-	public static final class RegisteredType
-	{
-		Class<? extends Value<?, ?>> typeClass;
-		String name;
-		Type valueType;
-		Type consumptionResult;
-		
-		boolean compoundArgument;
-		
-		Method byteConsumer;
-		Method characterConsumer;
-		Method validationValues;
-		Method argumentList;
-		Method buildValue;
-		
-		static ReturnResult<RegisteredType> create(String name, Class<? extends Value<?, ?>> typeClass)
-		{
-			//make sure that this is at the very least a subclass of Value
-			Type plainType = stepUpToImplementation(typeClass.getGenericSuperclass(), Value.class);
-			Type compoundType = stepUpToImplementation(typeClass.getGenericSuperclass(), CompoundArgumentValue.class);
-			if (plainType == null && compoundType == null)
-				return new ReturnResult<>("Does not implement " + Value.class.getName() + " or " + CompoundArgumentValue.class.getName());
+	private static final HashMap<String, RegisteredType<?, ?>> nameMap = new HashMap<>();
+	private static final HashMap<Class<?>, RegisteredType<?, ?>> classMap = new HashMap<>();
+	private static final Result[] defaultValueStatus = RegistrationQueue.start()
+			.add("Byte", ByteValue.class)
+			.add("Boolean", BooleanValue.class)
+			.add("Short", ShortValue.class)
+			.add("Character", CharacterValue.class)
+			.add("Integer", IntegerValue.class)
+			.add("Float", FloatValue.class)
+			.add("Long", LongValue.class)
+			.add("Double", DoubleValue.class)
+			.add("UUID", UUIDValue.class)
+			.add("String", StringValue.class)
 			
-			RequiredMethod[] requiredMethods;
-			Type[] parameters;
-			if (compoundType == null)
-			{
-				requiredMethods = TypeRegistry.plainArgumentMethods;
-				parameters = ((ParameterizedType)plainType).getActualTypeArguments();
-			}
-			else
-			{
-				requiredMethods = TypeRegistry.compoundArgumentMethods;
-				parameters = ((ParameterizedType)compoundType).getActualTypeArguments();
-			}
-			
-			RegisteredType registration = new RegisteredType();
-			registration.typeClass = typeClass;
-			registration.name = name;
-			registration.valueType = parameters[0];
-			registration.consumptionResult = parameters[1];
-			registration.compoundArgument = plainType == null;
-			
-			return checkForRequiredMethods(typeClass, requiredMethods, registration);
-		}
-		
-		private static ReturnResult<RegisteredType> checkForRequiredMethods(Class<? extends Value<?, ?>> typeClass, RequiredMethod[] requiredMethods, RegisteredType registration)
-		{
-			try
-			{
-				Method[] methods = typeClass.getMethods();
-				for (Method value : methods)
-				{
-					for (RequiredMethod method : requiredMethods)
-					{
-						//iterating through all the methods in the class, as well as all the annotations
-						//we are looking for we single out the methods that have the proper annotations
-						if (value.isAnnotationPresent(method.annotation))
-						{
-							//make sure the method has the correct modifiers
-							int modifiers = value.getModifiers();
-							if (!Modifier.isPublic(modifiers))
-								return new ReturnResult<>(method.annotation.getSimpleName() + " method must be public.");
-							if (Modifier.isAbstract(modifiers))
-								return new ReturnResult<>(method.annotation.getSimpleName() + " method must not be abstract.");
-							if (!Modifier.isStatic(modifiers))
-								return new ReturnResult<>(method.annotation.getSimpleName() + " method must be static.");
-							
-							//now we check to make sure there is only one method for each annotation
-							if (method.field.get(registration) != null)
-								return new ReturnResult<>("Only one " + method.annotation.getSimpleName() + " method can be provided.");
-							
-							//validate that this method has the correct return type and arguments, given the annotation
-							//and value type
-							Result result = method.methodValidator.validate(value.getGenericReturnType(), registration.valueType, registration.consumptionResult, value.getGenericParameterTypes());
-							if (!result.success())
-								return new ReturnResult<>(RichStringBuilder.start(method.annotation.getSimpleName() + " method does not have the correct return type: ")
-																		   .append(result.description()).build());
-							//if the method is properly defined, then we can set the field
-							method.field.set(registration, value);
-						}
-					}
-				}
-				
-				//lastly, we check to make sure we found a method for each annotation, and if everything
-				//is in order then we can return a valid result
-				for (RequiredMethod method : requiredMethods)
-				{
-					if (method.field.get(registration) == null)
-						return new ReturnResult<>(method.annotation.getSimpleName() + " method was not provided.");
-				}
-				return new ReturnResult<>(registration);
-			}
-			catch (IllegalAccessException e)
-			{
-				return new ReturnResult<>("Fields could not be accessed.");
-			}//these exceptions should in theory never occur but the IDE complains if we don't handle them
-			catch (IllegalArgumentException e)
-			{
-				return new ReturnResult<>("Fields could not be assigned.");
-			}
-		}
-		
-		public String name()
-		{
-			return name;
-		}
-		
-		public Class<? extends Value<?, ?>> typeClass()
-		{
-			return typeClass;
-		}
-		
-		public Consumer<Value<?, ?>, Byte> byteConsumer()
-		{
-			try
-			{
-				return (Consumer<Value<?, ?>, Byte>) byteConsumer.invoke(null);
-			}
-			catch (IllegalAccessException | InvocationTargetException | ClassCastException e)
-			{
-				return null;
-			}
-		}
-		
-		public Consumer<Value<?, ?>, Character> characterConsumer()
-		{
-			if (compoundArgument)
-			{
-				return CompoundArgumentValue.compoundCharacterConsumer(this);
-			}
-			else
-			{
-				try
-				{
-					return (Consumer<Value<?, ?>, Character>) characterConsumer.invoke(null);
-				}
-				catch (IllegalAccessException | InvocationTargetException | ClassCastException e)
-				{
-					return null;
-				}
-			}
-		}
-		
-		public Value<?, ?>[] validationValues()
-		{
-			try
-			{
-				return (Value<?, ?>[]) validationValues.invoke(null);
-			}
-			catch (IllegalAccessException | InvocationTargetException | ClassCastException e)
-			{
-				return null;
-			}
-		}
-		
-		AdaptiveArgumentList argumentList(Object[] initData)
-		{
-			if (compoundArgument)
-			{
-				try
-				{
-					return (AdaptiveArgumentList) argumentList.invoke(null, (Object)initData);
-				}
-				catch (IllegalAccessException | InvocationTargetException | ClassCastException e)
-				{
-					return null;
-				}
-			}
-			else
-			{
-				return null;
-			}
-		}
-		
-		Object buildValue(AdaptiveInterpretation result, Executor executor)
-		{
-			if (compoundArgument)
-			{
-				try
-				{
-					return buildValue.invoke(null, result, executor);
-				}
-				catch (IllegalAccessException | ClassCastException e)
-				{
-					e.printStackTrace();
-					return null;
-				}
-				catch (InvocationTargetException e)
-				{
-					throw new RuntimeException("Exception occurred while building value: " + Result.describeThrowableFull(e.getTargetException()));
-				}
-			}
-			else
-			{
-				return null;
-			}
-		}
-	}
+			.addListValue("List", ListValue.class)
+			.add("Data", DataValue.class)
+			.process();
 	
 	/**
 	 * Gets a type's registration
@@ -314,9 +39,9 @@ public class TypeRegistry
 	 * @param typeClass
 	 * @return
 	 */
-	public static RegisteredType get(Class<?> typeClass)
+	public static <ValueType, ConsumptionResult> RegisteredType<ValueType, ConsumptionResult> get(Class<? extends Value<ValueType, ConsumptionResult>> typeClass)
 	{
-		return classMap.get(typeClass);
+		return (RegisteredType<ValueType, ConsumptionResult>)classMap.get(typeClass);
 	}
 	
 	/**
@@ -327,7 +52,7 @@ public class TypeRegistry
 	 * @param name
 	 * @return
 	 */
-	public static RegisteredType get(String name)
+	public static RegisteredType<?, ?> get(String name)
 	{
 		return nameMap.get(name);
 	}
@@ -338,71 +63,35 @@ public class TypeRegistry
 	 */
 	public static Result[] defaultValueStatus()
 	{
-		return defaultValueStatus.value(true);
+		return defaultValueStatus;
 	}
 	
-	private static class ValidationValuesMethod extends RequiredMethod
+	/**
+	 * <p>
+	 *     Important to keep in mind that when part of a Data object, tabs will be inserted after each
+	 *     new line in this Value's string representation.<br>
+	 *     The Character Consumer needs to be able to account for these.
+	 * </p>
+	 */
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public @interface CharacterConsumer
 	{
-		private ValidationValuesMethod()
+	
+	}
+	
+	public static final class RegisteredPlainType<ValueType, ConsumptionResult> extends RegisteredType<ValueType, ConsumptionResult>
+	{
+		public final RequiredMethod characterConsumer = new RequiredMethod(CharacterConsumer.class,
+		(returnType, arguments, valueType, consumptionResult) ->
 		{
-			super(ValidationValues.class, "validationValues",
-			(returnType, valueType, consumptionType, arguments) ->
+			if (arguments.length == 1)
 			{
-				if (arguments.length > 0)
-					return new Result("Must require no arguments.");
-				
-				if (returnType instanceof GenericArrayType)
-				{
-					Type type = ((GenericArrayType) returnType).getGenericComponentType();
-					type = stepUpToImplementation(type, Value.class);
-					if (type != null)
-					{
-						Type[] parameters = ((ParameterizedType)type).getActualTypeArguments();
-						if (parameters[1].equals(consumptionType))
-							return new Result();
-					}
-				}
-				return new Result("Must return " + Value.class.getName() + "<?, " + consumptionType.getTypeName() + ">[]");
-			});
-		}
-	}
-	
-	private static class ByteConsumerMethod extends RequiredMethod
-	{
-		private ByteConsumerMethod()
-		{
-			super(ByteConsumer.class, "byteConsumer",
-			(returnType, valueType, consumptionType, arguments) ->
-			{
-				if (arguments.length > 0)
-					return new Result("Must require no arguments.");
-				
-				returnType = stepUpToImplementation(returnType, Consumer.class);
-				if (returnType != null)
-				{
-					Type[] consumerParameters = ((ParameterizedType)returnType).getActualTypeArguments();
-					Type resultType = stepUpToImplementation(consumerParameters[0], Value.class);
-					if (resultType != null)
-					{
-						Type[] resultParameters = ((ParameterizedType)resultType).getActualTypeArguments();
-						if (resultParameters[0] instanceof WildcardType && resultParameters[1].equals(consumptionType) && consumerParameters[1].equals(Byte.class))
-							return new Result();
-					}
-				}
-				return new Result("Must return " + Consumer.class.getName() + "<" + Value.class.getName() + "<?, " + consumptionType.getTypeName() + ">, " + Byte.class.getName() + ">");
-			});
-		}
-	}
-	
-	private static RequiredMethod[] plainArgumentMethods()
-	{
-		return new RequiredMethod[] {new ValidationValuesMethod(), new ByteConsumerMethod(),
-		
-		new RequiredMethod(CharacterConsumer.class, "characterConsumer",
-		(returnType, valueType, consumptionType, arguments) ->
-		{
-			if (arguments.length > 0)
-				return new Result("Must require no arguments.");
+				if (!(arguments[0] instanceof GenericArrayType) || !((GenericArrayType)arguments[0]).getGenericComponentType().equals(Object.class))
+					return new Result("Argument must be an array of Objects");
+			}
+			else if (arguments.length > 1)
+				return new Result("Must either have no arguments, or accept an array of Objects");
 			
 			returnType = stepUpToImplementation(returnType, Consumer.class);
 			if (returnType != null)
@@ -412,22 +101,51 @@ public class TypeRegistry
 				if (resultType != null)
 				{
 					Type[] resultParameters = ((ParameterizedType)resultType).getActualTypeArguments();
-					if (resultParameters[0] instanceof WildcardType && resultParameters[1].equals(consumptionType) && consumerParameters[1].equals(Character.class))
+					if (resultParameters[0] instanceof WildcardType && resultParameters[1].equals(consumptionResult) && consumerParameters[1].equals(Character.class))
 					{
 						return new Result();
 					}
 				}
 			}
-			return new Result("Must return " + Consumer.class.getName() + "<" + Value.class.getName() + "<?, " + consumptionType.getTypeName() + ">, " + Character.class.getName() + ">");
-		})};
+			return new Result("Must return " + Consumer.class.getName() + "<" + Value.class.getName() + "<?, " + consumptionResult.getTypeName() + ">, " + Character.class.getName() + ">");
+		});
+		
+		@Override
+		Result captureMethods()
+		{
+			return characterConsumer.capture();
+		}
+		
+		@Override
+		public Consumer<Value<?, ConsumptionResult>, Character> characterConsumer(Object[] data)
+		{
+			if (characterConsumer.method.getParameterCount() == 1)
+			{
+				if (data.length == 0)
+					data = new Object[] {new Object[0]};
+			}
+			return (Consumer<Value<?, ConsumptionResult>, Character>)characterConsumer.invoke(data);
+		}
 	}
 	
-	private static RequiredMethod[] compoundArgumentMethods()
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public @interface ArgumentList
 	{
-		return new RequiredMethod[] {new ValidationValuesMethod(), new ByteConsumerMethod(),
-		
-		new RequiredMethod(ArgumentList.class, "argumentList",
-		(returnType, valueType, consumptionType, arguments) ->
+	
+	}
+	
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public @interface BuildValue
+	{
+	
+	}
+	
+	public static final class RegisteredCompoundType<ValueType, ConsumptionResult> extends RegisteredType<ValueType, ConsumptionResult>
+	{
+		public final RequiredMethod argumentList = new RequiredMethod(ArgumentList.class,
+		(returnType, arguments, valueType, consumptionResult) ->
 		{
 			if (!returnType.equals(AdaptiveArgumentList.class))
 				return new Result("Must return " + AdaptiveArgumentList.class.getName());
@@ -435,25 +153,344 @@ public class TypeRegistry
 				return new Result("Must accept an Object array as it's only argument.");
 			
 			return new Result();
-		}),
+		});
 		
-		new RequiredMethod(BuildValue.class, "buildValue",
-		(returnType, valueType, consumptionType, arguments) ->
+		public final RequiredMethod buildValue = new RequiredMethod(BuildValue.class,
+		(returnType, arguments, valueType, consumptionResult) ->
 		{
 			if (arguments.length == 2 && arguments[0].equals(AdaptiveInterpretation.class))
 			{
 				Type executor = stepUpToImplementation(arguments[1], Executor.class);
 				if (executor != null)
 				{
-					if (!returnType.equals(consumptionType))
-						return new Result("Must return " + consumptionType.getTypeName());
+					if (!returnType.equals(consumptionResult))
+						return new Result("Must return " + consumptionResult.getTypeName());
 					
 					return new Result();
 				}
 			}
 			
 			return new Result("Arguments must be (" + AdaptiveInterpretation.class.getName() + ", " + Executor.class.getName() + ")");
-		})};
+		});
+		
+		@Override
+		Result captureMethods()
+		{
+			Result result = argumentList.capture();
+			if (!result.success())
+				return result;
+			return buildValue.capture();
+		}
+		
+		@Override
+		public Consumer<Value<?, ConsumptionResult>, Character> characterConsumer(Object[] data)
+		{
+			return CompoundArgumentValue.compoundCharacterConsumer(this, data);
+		}
+		
+		public AdaptiveArgumentList argumentList(Object[] data)
+		{
+			return (AdaptiveArgumentList)argumentList.invoke(new Object[] {data});
+		}
+		
+		public ConsumptionResult buildValue(AdaptiveInterpretation interpretation, Executor executor)
+		{
+			return (ConsumptionResult)buildValue.invoke(new Object[] {interpretation, executor});
+		}
+	}
+	
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public @interface ValidationValues
+	{
+	
+	}
+	
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.METHOD)
+	public @interface ByteConsumer
+	{
+	
+	}
+	
+	public static abstract class RegisteredType<ValueType, ConsumptionResult>
+	{
+		Class<? extends Value<ValueType, ConsumptionResult>> typeClass;
+		String name;
+		Type valueType;
+		Type consumptionResult;
+		
+		public final RequiredMethod byteConsumer = new RequiredMethod(ByteConsumer.class,
+		(returnType, arguments, valueType, consumptionResult) ->
+		{
+			if (arguments.length == 1)
+			{
+				if (!(arguments[0] instanceof GenericArrayType) || !((GenericArrayType)arguments[0]).getGenericComponentType().equals(Object.class))
+					return new Result("Argument must be an array of Objects");
+			}
+			else if (arguments.length > 1)
+				return new Result("Must either have no arguments, or accept an array of Objects");
+			
+			returnType = stepUpToImplementation(returnType, Consumer.class);
+			if (returnType != null)
+			{
+				Type[] consumerParameters = ((ParameterizedType)returnType).getActualTypeArguments();
+				Type resultType = stepUpToImplementation(consumerParameters[0], Value.class);
+				if (resultType != null)
+				{
+					Type[] resultParameters = ((ParameterizedType)resultType).getActualTypeArguments();
+					if (resultParameters[0] instanceof WildcardType && resultParameters[1].equals(consumptionResult) && consumerParameters[1].equals(Byte.class))
+						return new Result();
+				}
+			}
+			return new Result("Must return " + Consumer.class.getName() + "<" + Value.class.getName() + "<?, " + consumptionResult.getTypeName() + ">, " + Byte.class.getName() + ">");
+		});
+		
+		public final RequiredMethod validationValues = new RequiredMethod(ValidationValues.class,
+		(returnType, arguments, valueType, consumptionResult) ->
+		{
+			if (arguments.length > 0)
+				return new Result("Must require no arguments.");
+			
+			if (returnType instanceof GenericArrayType)
+			{
+				Type type = ((GenericArrayType) returnType).getGenericComponentType();
+				type = stepUpToImplementation(type, Value.class);
+				if (type != null)
+				{
+					Type[] parameters = ((ParameterizedType)type).getActualTypeArguments();
+					if (parameters[1].equals(consumptionResult))
+						return new Result();
+				}
+			}
+			return new Result("Must return " + Value.class.getName() + "<?, " + consumptionResult.getTypeName() + ">[]");
+		});
+		
+		static <ValueType, ConsumptionResult> ReturnResult<RegisteredType<ValueType, ConsumptionResult>> create(String name, Class<? extends Value<ValueType, ConsumptionResult>> typeClass)
+		{
+			//make sure that this is at the very least a subclass of Value
+			Type plainType = stepUpToImplementation(typeClass.getGenericSuperclass(), Value.class);
+			Type compoundType = stepUpToImplementation(typeClass.getGenericSuperclass(), CompoundArgumentValue.class);
+			if (plainType == null && compoundType == null)
+				return new ReturnResult<>("Does not implement " + Value.class.getName() + " or " + CompoundArgumentValue.class.getName());
+			
+			Type[] parameters;
+			RegisteredType<ValueType, ConsumptionResult> registration;
+			if (compoundType == null)
+			{
+				parameters = ((ParameterizedType)plainType).getActualTypeArguments();
+				registration = new RegisteredPlainType<>();
+			}
+			else
+			{
+				parameters = ((ParameterizedType)compoundType).getActualTypeArguments();
+				registration = new RegisteredCompoundType<>();
+			}
+			
+			registration.typeClass = typeClass;
+			registration.name = name;
+			registration.valueType = parameters[0];
+			registration.consumptionResult = parameters[1];
+			
+			Result result = registration.byteConsumer.capture();
+			if (!result.success())
+				return new ReturnResult(result.description());
+			result = registration.validationValues.capture();
+			if (!result.success())
+				return new ReturnResult(result.description());
+			result = registration.captureMethods();
+			if (!result.success())
+				return new ReturnResult(result.description());
+			return new ReturnResult<>(registration);
+		}
+		
+		/**
+		 * Capture additional methods
+		 * @return either a successful result, or the result of the first method that failed to capture
+		 */
+		abstract Result captureMethods();
+		
+		public String name()
+		{
+			return name;
+		}
+		
+		public Class<? extends Value<ValueType, ConsumptionResult>> typeClass()
+		{
+			return typeClass;
+		}
+		
+		public final class RequiredMethod
+		{
+			private final MethodValidator validator;
+			private final Class<? extends Annotation> annotation;
+			private Result valid = new Result("Not yet captured");
+			private Method method;
+			
+			RequiredMethod(Class<? extends Annotation> annotation, MethodValidator validator)
+			{
+				this.annotation = annotation;
+				this.validator = validator;
+			}
+			
+			private Result capture()
+			{
+				valid = new Result("No implementation found.");
+				for (Method method : typeClass.getMethods())
+				{
+					Result result = checkMethod(method);
+					
+					//if the method didn't have our annotation, we skip over it
+					if (result == null)
+						continue;
+					valid = result;
+					
+					//if the method had our annotation but was invalid for some reason, then we have
+					// failed to capture it
+					if (!result.success())
+						break;
+					
+					//if the method had our annotation and was valid, then we keep it and continue
+					// checking to ensure no duplicates
+					if (result.success())
+						this.method = method;
+				}
+				if (valid.success())
+					return new Result();
+				else
+					return new Result(RichStringBuilder.start(annotation.getSimpleName() + " is invalid: ").append(valid.description()).build());
+			}
+			
+			private Result checkMethod(Method method)
+			{
+				if (!method.isAnnotationPresent(annotation))
+					return null;
+				
+				//check to make sure this isn't a duplicate
+				if (this.method != null)
+					return new ReturnResult<>("Only one " + annotation.getSimpleName() + " method can be provided.");
+				
+				//make sure the method has the correct modifiers
+				int modifiers = method.getModifiers();
+				if (!Modifier.isPublic(modifiers))
+					return new ReturnResult<>("must be public.");
+				if (Modifier.isAbstract(modifiers))
+					return new ReturnResult<>("must not be abstract.");
+				if (!Modifier.isStatic(modifiers))
+					return new ReturnResult<>("method must be static.");
+				
+				//validate the method's return type and arguments
+				return validator.validate(method.getGenericReturnType(), method.getGenericParameterTypes(), valueType, consumptionResult);
+			}
+			
+			public Result valid()
+			{
+				return valid;
+			}
+			
+			public Object invoke()
+			{
+				return invoke(new Object[0]);
+			}
+			
+			public Object invoke(Object[] arguments)
+			{
+				if (!valid.success())
+					throw new RuntimeException("Could not call " + annotation.getSimpleName() + " in " + typeClass.getName() + " because the method signature is invalid: " + valid.description());
+				
+				try
+				{
+					return method.invoke(null, arguments);
+				}
+				catch (IllegalAccessException | ClassCastException | InvocationTargetException e)
+				{
+					Exception exception;
+					if (e instanceof InvocationTargetException invocationTargetException)
+						exception = invocationTargetException;
+					else
+						exception = e;
+					throw new RuntimeException("Exception occurred while calling " + annotation.getSimpleName() + " in " + typeClass.getName() + ": " + Result.describeThrowableFull(exception));
+				}
+				catch (IllegalArgumentException e)
+				{
+					throw new RuntimeException(annotation.getSimpleName() + " in " + typeClass.getName() + " called with illegal argument: " + e.getMessage());
+				}
+			}
+			
+			static interface MethodValidator
+			{
+				Result validate(Type returnType, Type[] arguments, Type valueType, Type consumptionType);
+			}
+		}
+		
+		public Value<?, ConsumptionResult>[] validationValues()
+		{
+			return (Value<?, ConsumptionResult>[])validationValues.invoke();
+		}
+		
+		public Consumer<Value<?, ConsumptionResult>, Byte> byteConsumer()
+		{
+			return (Consumer<Value<?, ConsumptionResult>, Byte>)byteConsumer.invoke();
+		}
+		
+		public Consumer<Value<?, ConsumptionResult>, Byte> byteConsumer(Object[] data)
+		{
+			if (byteConsumer.method.getParameterCount() == 1)
+			{
+				if (data.length == 0)
+					data = new Object[] {new Object[0]};
+			}
+			return (Consumer<Value<?, ConsumptionResult>, Byte>)byteConsumer.invoke(data);
+		}
+		
+		public Consumer<Value<?, ConsumptionResult>, Character> characterConsumer()
+		{
+			return characterConsumer(new Object[0]);
+		}
+		
+		public abstract Consumer<Value<?, ConsumptionResult>, Character> characterConsumer(Object[] data);
+	}
+	
+	public static final class RegistrationQueue
+	{
+		public static record Entry<ValueType, ConsumptionResult>(String name, Class<? extends Value<ValueType, ConsumptionResult>> typeClass)
+		{
+		
+		}
+		
+		public static RegistrationQueue start()
+		{
+			return new RegistrationQueue();
+		}
+		
+		final ArrayList<Entry<?, ?>> queue = new ArrayList<>();
+		
+		public <ValueType, ConsumptionResult> RegistrationQueue add(String name, Class<? extends Value<ValueType, ConsumptionResult>> typeClass)
+		{
+			queue.add(new Entry(name, typeClass));
+			return this;
+		}
+		
+		RegistrationQueue addListValue(String name, Class<ListValue> typeClass)
+		{
+			queue.add(new Entry(name, typeClass));
+			return this;
+		}
+		
+		public Result[] process()
+		{
+			Result[] registrationResults = new Result[queue.size()];
+			for (int index = 0; index < queue.size(); index++)
+			{
+				Entry entry = queue.get(index);
+				Result result = register(entry.name, entry.typeClass);
+				if (!result.success())
+					throw new RuntimeException("Could not register value: " + result.description());
+				registrationResults[index] = result;
+			}
+			queue.clear();
+			return registrationResults;
+		}
 	}
 	
 	/**
@@ -480,81 +517,184 @@ public class TypeRegistry
 		}
 	}
 	
-	//these annotations are used to identify the required methods in a value types implementation
-	
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.METHOD)
-	public @interface ValidationValues
+	public static <ValueType, ConsumptionResult> Result register(String name, Class<? extends Value<ValueType, ConsumptionResult>> typeClass)
 	{
-	
-	}
-	
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.METHOD)
-	public @interface ByteConsumer
-	{
-	
-	}
-	
-	/**
-	 * <p>
-	 *     Important to keep in mind that when part of a Data object, tabs will be inserted after each
-	 *     new line in this Value's string representation.<br>
-	 *     The Character Consumer needs to be able to account for these.
-	 * </p>
-	 */
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.METHOD)
-	public @interface CharacterConsumer
-	{
-	
-	}
-	
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.METHOD)
-	public @interface ArgumentList
-	{
-	
-	}
-	
-	@Retention(RetentionPolicy.RUNTIME)
-	@Target(ElementType.METHOD)
-	public @interface BuildValue
-	{
-	
-	}
-	
-	/**
-	 * Ensures that a required method's return type is what it should be.
-	 */
-	private static interface MethodValidator
-	{
-		Result validate(Type returnType, Type valueType, Type consumptionType, Type[] arguments);
-	}
-	
-	/**
-	 * Represents a static method that value types must implement
-	 */
-	private static class RequiredMethod
-	{
-		final Class<? extends Annotation> annotation;
-		Field field;
-		final MethodValidator methodValidator;
+		//make sure nothing has already been registered with this name or class
+		if (classMap.containsKey(typeClass))
+			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Already registered.");
+		if (nameMap.containsKey(name))
+			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Another type is already registered under that name.");
 		
-		private RequiredMethod(Class<? extends Annotation> annotation, String fieldName,
-							   MethodValidator methodValidator)
+		//verify that the implementation is valid, and create the registration
+		ReturnResult<RegisteredType<ValueType, ConsumptionResult>> creationResult = RegisteredType.create(name, typeClass);
+		if (!creationResult.success())
+			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Not a valid value type implementation: " + creationResult.description());
+		classMap.put(typeClass, creationResult.value());
+		nameMap.put(name, creationResult.value());
+		
+		//validate that the implementation behaves as expected
+		Result validationResult = validate(creationResult.value());
+		if (!validationResult.success())
 		{
-			this.annotation = annotation;
-			this.methodValidator = methodValidator;
-			
-			try
-			{
-				field = RegisteredType.class.getDeclaredField(fieldName);
-			}
-			catch (NoSuchFieldException | SecurityException e)
-			{//these exceptions should in theory never occur but the IDE complains if we don't handle them
-				System.err.println("Data TypeRegistry Could not initialize required method " + annotation.getSimpleName() + ": Could not find " + fieldName + " field.");
-			}
+			nameMap.remove(name);
+			classMap.remove(typeClass);
+			return new Result("Could not register type " + typeClass.getName() + " as '" + name + "': Validation Failure: " + validationResult.description());
 		}
+		else
+			return new Result(typeClass.getName() + " registered as " + name, true);
+	}
+	
+	private static <ValueType, ConsumptionResult> Result validate(RegisteredType<ValueType, ConsumptionResult> type)
+	{
+		//retrieve the array of validation values and make sure it has at least one entry
+		Value<ValueType, ConsumptionResult>[] values;
+		try
+		{
+			values = (Value<ValueType, ConsumptionResult>[])type.validationValues.invoke(null);
+		}
+		catch (Exception e)
+		{
+			return new Result("Exception occurred getting validation values, " + Result.describeThrowableFull(e));
+		}
+		if (values == null)
+			return new Result("Validation values can not be null.");
+		if (values.length == 0)
+			return new Result("There must be at least one validation value.");
+		
+		//check validation values
+		Result validationResult;
+		for (int index = 0; index < values.length; index++)
+		{
+			validationResult = checkValidationValue(values[index]);
+			if (!validationResult.success())
+				return new Result(RichStringBuilder.start("Validation value #" + index + " failed: ").append(validationResult.description()).build());
+		}
+		
+		return new Result();
+	}
+	
+	private static <ValueType, ConsumptionType> Result checkValidationValue(Value<ValueType, ConsumptionType> testValue)
+	{
+		//null values shouldn't be supported
+		ValueType value = testValue.get();
+		if (value == null)
+			return new Result("Value is null.");
+		
+		//ensure that setting and getting values is consistent
+		testValue.set(value);
+		if (!value.equals(testValue.get()))
+			return new Result("Getting value produced a result that didn't match the set value.");
+		
+		//ensure that copying a value doesn't throw an exception
+		Value<ValueType, ConsumptionType> second;
+		try
+		{
+			second = testValue.copy();
+		}
+		catch (Exception e)
+		{
+			return new Result("Exception occurred while making a copy of the value: " + Result.describeThrowableFull(e));
+		}
+		
+		//ensure that instances with the same value will equal each other
+		boolean equal;
+		try
+		{
+			equal = testValue.equals(second);
+		}
+		catch (Exception e)
+		{
+			return new Result("Exception occurred while checking data equality: " + Result.describeThrowableFull(e));
+		}
+		if (!equal)
+			return new Result("Two instances were not equal despite having the same value.");
+		
+		//ensure that converting to string works as expected
+		String string;
+		try
+		{
+			string = testValue.asString();
+		}
+		catch (Exception e)
+		{
+			return new Result("Exception occurred while converting to string: " + Result.describeThrowableFull(e));
+		}
+		if (string == null)
+			return new Result("asString can not return null.");
+		
+		//ensure that interpreting character data produces the original value while consuming the correct
+		//amount of data
+		//we add an extra character to the end to make sure the interpreter doesn't consume too much data
+		string += ' ';
+		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Character> characterResult;
+		Indexer<Character> characterSource = StringValue.indexer(string);
+		try
+		{
+			characterResult = second.setFromCharacters(characterSource);
+		}
+		catch (Exception e)
+		{
+			return new Result("Exception occurred while parsing character data: " + Result.describeThrowableFull(e));
+		}
+		if (characterResult == null)
+			return new Result("Character consumer can not return a null result.");
+		if (!characterResult.success())
+			return new Result(RichStringBuilder.start("Character consumption failed on data that should have been valid: ").append(characterResult.description()).build());
+		//make sure that the extra character we added earlier wasn't consumed, and is the only character
+		//that wasn't consumed.
+		if (characterSource.atEnd())
+			return new Result("Character consumer has consumed too much data.");
+		characterSource.next();
+		if (!characterSource.atEnd())
+			return new Result("Character consumer has not consumed enough data.");
+		if (!testValue.equals(second))
+			return new Result("String conversion did not produce an equal value.");
+		
+		//ensure that converting to byte data works as expected
+		byte[] byteData;
+		try
+		{
+			byteData = testValue.asBytes();
+		}
+		catch (Exception e)
+		{
+			return new Result("Exception occurred while converting to byte data: " + Result.describeThrowableFull(e));
+		}
+		if (byteData == null)
+			return new Result("asBytes can not return null.");
+		
+		//ensure that interpreting byte data produces the original value while consuming the correct
+		//amount of data
+		//we add an extra byte to the end to make sure the interpreter doesn't consume too much data
+		ByteArrayBuilder builder = new ByteArrayBuilder();
+		builder.add(byteData);
+		builder.add((byte)0);
+		byteData = builder.toPrimitiveArray();
+		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Byte> byteResult;
+		Indexer<Byte> byteSource = ByteArrayBuilder.indexer(byteData);
+		try
+		{
+			byteResult = second.setFromBytes(byteSource);
+		}
+		catch (Exception e)
+		{
+			return new Result("Exception occurred while parsing byte data: " + Result.describeThrowableFull(e));
+		}
+		if (byteResult == null)
+			return new Result("Byte consumer can not return a null result.");
+		if (!byteResult.success())
+			return new Result(RichStringBuilder.start("Byte consumption failed on data that should have been valid: ").append(byteResult.description()).build());
+		//make sure that the extra byte we added earlier wasn't consumed, and is the only byte
+		//that wasn't consumed.
+		if (byteSource.atEnd())
+			return new Result("Byte consumer has consumed too much data.");
+		byteSource.next();
+		if (!byteSource.atEnd())
+			return new Result("Byte consumer has not consumed enough data.");
+		if (!testValue.equals(second))
+			return new Result("Byte conversion did not produce an equal value.");
+		
+		//all checks have passed
+		return new Result();
 	}
 }

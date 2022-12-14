@@ -30,9 +30,13 @@ public class RichColor extends Color
 	public static final RichColor DARK_GRAY = new RichColor(5592405, '8');
 	public static final RichColor BLACK = new RichColor(0, 0, 0, 255, '0');
 	public static final RichColor CLEAR = new RichColor(0, characterCodeReset);
+	//
 	public static final RichColor JOG_YELLOW = new RichColor(255, 201, 14, 'e');
+	//#3f48cc
 	public static final RichColor JOG_BLUE = new RichColor(63, 72, 204, 'b');
+	//#a349a4
 	public static final RichColor JOG_PURPLE = new RichColor(163, 73, 164, '5');
+	//
 	public static final RichColor JOG_GRAY = new RichColor(127, 127, 127, '7');
 	
 	private char characterCode = characterCodeReset;

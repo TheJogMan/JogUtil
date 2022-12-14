@@ -3,9 +3,7 @@ package jogUtil.data;
 import jogUtil.*;
 import jogUtil.commander.*;
 import jogUtil.commander.argument.*;
-import jogUtil.data.values.*;
 import jogUtil.indexable.*;
-import jogUtil.richText.*;
 
 import java.util.*;
 
@@ -154,9 +152,14 @@ public abstract class Value<ValueType, ConsumptionType> implements Argument<Valu
 		return result;
 	}
 	
-	public TypeRegistry.RegisteredType type()
+	public TypeRegistry.RegisteredType<ValueType, ConsumptionType> type()
 	{
-		return TypeRegistry.get(getClass());
+		return TypeRegistry.get((Class<? extends Value<ValueType, ConsumptionType>>)getClass());
+	}
+	
+	public TypeRegistry.RegisteredPlainType<ValueType, ConsumptionType> plainType()
+	{
+		return (TypeRegistry.RegisteredPlainType)type();
 	}
 	
 	public Consumer<Value<ValueType, ConsumptionType>, Byte> byteConsumer()
@@ -223,132 +226,6 @@ public abstract class Value<ValueType, ConsumptionType> implements Argument<Valu
 			return (checkDataEquality((Value<?, ?>)object));
 		else
 			return false;
-	}
-	
-	//this is an internal method used during validation
-	Result validate()
-	{
-		//null values shouldn't be supported
-		ValueType value = get();
-		if (value == null)
-			return new Result("Value is null.");
-		
-		//ensure that setting and getting values is consistent
-		set(value);
-		if (!value.equals(get()))
-			return new Result("Getting value produced a result that didn't match the set value.");
-		
-		//ensure that copying a value doesn't throw an exception
-		Value<ValueType, ConsumptionType> second;
-		try
-		{
-			second = copy();
-		}
-		catch (Exception e)
-		{
-			return new Result("Exception occurred while making a copy of the value: " + Result.describeThrowableFull(e));
-		}
-		
-		//ensure that instances with the same value will equal each other
-		boolean equal;
-		try
-		{
-			equal = equals(second);
-		}
-		catch (Exception e)
-		{
-			return new Result("Exception occurred while checking data equality: " + Result.describeThrowableFull(e));
-		}
-		if (!equal)
-			return new Result("Two instances were not equal despite having the same value.");
-		
-		//ensure that converting to string works as expected
-		String string;
-		try
-		{
-			string = asString();
-		}
-		catch (Exception e)
-		{
-			return new Result("Exception occurred while converting to string: " + Result.describeThrowableFull(e));
-		}
-		if (string == null)
-			return new Result("asString can not return null.");
-		
-		//ensure that interpreting character data produces the original value while consuming the correct
-		//amount of data
-		//we add an extra character to the end to make sure the interpreter doesn't consume too much data
-		string += ' ';
-		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Character> characterResult;
-		Indexer<Character> characterSource = StringValue.indexer(string);
-		try
-		{
-			characterResult = second.setFromCharacters(characterSource);
-		}
-		catch (Exception e)
-		{
-			return new Result("Exception occurred while parsing character data: " + Result.describeThrowableFull(e));
-		}
-		if (characterResult == null)
-			return new Result("Character consumer can not return a null result.");
-		if (!characterResult.success())
-			return new Result(RichStringBuilder.start("Character consumption failed on data that should have been valid: ").append(characterResult.description()).build());
-		//make sure that the extra character we added earlier wasn't consumed, and is the only character
-		//that wasn't consumed.
-		if (characterSource.atEnd())
-			return new Result("Character consumer has consumed too much data.");
-		characterSource.next();
-		if (!characterSource.atEnd())
-			return new Result("Character consumer has not consumed enough data.");
-		if (!equals(second))
-			return new Result("String conversion did not produce an equal value.");
-		
-		//ensure that converting to byte data works as expected
-		byte[] byteData;
-		try
-		{
-			byteData = asBytes();
-		}
-		catch (Exception e)
-		{
-			return new Result("Exception occurred while converting to byte data: " + Result.describeThrowableFull(e));
-		}
-		if (byteData == null)
-			return new Result("asBytes can not return null.");
-		
-		//ensure that interpreting byte data produces the original value while consuming the correct
-		//amount of data
-		//we add an extra byte to the end to make sure the interpreter doesn't consume too much data
-		ByteArrayBuilder builder = new ByteArrayBuilder();
-		builder.add(byteData);
-		builder.add((byte)0);
-		byteData = builder.toPrimitiveArray();
-		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Byte> byteResult;
-		Indexer<Byte> byteSource = ByteArrayBuilder.indexer(byteData);
-		try
-		{
-			byteResult = second.setFromBytes(byteSource);
-		}
-		catch (Exception e)
-		{
-			return new Result("Exception occurred while parsing byte data: " + Result.describeThrowableFull(e));
-		}
-		if (byteResult == null)
-			return new Result("Byte consumer can not return a null result.");
-		if (!byteResult.success())
-			return new Result(RichStringBuilder.start("Byte consumption failed on data that should have been valid: ").append(byteResult.description()).build());
-		//make sure that the extra byte we added earlier wasn't consumed, and is the only byte
-		//that wasn't consumed.
-		if (byteSource.atEnd())
-			return new Result("Byte consumer has consumed too much data.");
-		byteSource.next();
-		if (!byteSource.atEnd())
-			return new Result("Byte consumer has not consumed enough data.");
-		if (!equals(second))
-			return new Result("Byte conversion did not produce an equal value.");
-		
-		//all checks have passed
-		return new Result();
 	}
 	
 	CompletionBehavior behavior = CompletionBehavior.FILTER;

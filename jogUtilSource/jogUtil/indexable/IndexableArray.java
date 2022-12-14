@@ -17,7 +17,10 @@ public class IndexableArray<Type> extends Indexable<Type>
 	@Override
 	public Type get(int index)
 	{
-		return values[index];
+		if (index >= 0 && index < values.length)
+			return values[index];
+		else
+			return null;
 	}
 	
 	@Override
