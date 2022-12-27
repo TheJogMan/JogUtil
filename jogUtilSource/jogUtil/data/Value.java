@@ -152,9 +152,9 @@ public abstract class Value<ValueType, ConsumptionType> implements Argument<Valu
 		return result;
 	}
 	
-	public TypeRegistry.RegisteredType<ValueType, ConsumptionType> type()
+	public TypeRegistry.RegisteredType<?, ?> type()
 	{
-		return TypeRegistry.get((Class<? extends Value<ValueType, ConsumptionType>>)getClass());
+		return TypeRegistry.get((Class<? extends Value<?, ?>>)getClass());
 	}
 	
 	public TypeRegistry.RegisteredPlainType<ValueType, ConsumptionType> plainType()

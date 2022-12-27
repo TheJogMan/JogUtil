@@ -10,36 +10,36 @@ import java.util.*;
 
 public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<Value<?, ?>>> implements List<Type>
 {
-	private final TypeRegistry.RegisteredType type;
+	private final TypeRegistry.RegisteredType<?, ?> type;
 	final ArrayList<ListChangeListener<Type>> listeners = new ArrayList<>();
 	
-	private static void validateType(TypeRegistry.RegisteredType type)
+	private static void validateType(TypeRegistry.RegisteredType<?, ?> type)
 	{
 		if (type == null)
 			throw new IllegalArgumentException("Type must be registered.");
 	}
 	
-	public ListValue(TypeRegistry.RegisteredType type)
+	public ListValue(TypeRegistry.RegisteredType<?, ?> type)
 	{
 		super(new Object[0]);
 		validateType(type);
 		this.type = type;
 	}
 	
-	public ListValue(TypeRegistry.RegisteredType type, Object[] initData)
+	public ListValue(TypeRegistry.RegisteredType<?, ?> type, Object[] initData)
 	{
 		super(initData);
 		validateType(type);
 		this.type = type;
 	}
 	
-	public ListValue(TypeRegistry.RegisteredType type, List<Type> value)
+	public ListValue(TypeRegistry.RegisteredType<?, ?> type, List<Type> value)
 	{
 		this(type);
 		set(value);
 	}
 	
-	public static <Type extends Value<?, ?>> ListValue<Type> create(TypeRegistry.RegisteredType type, List<Type> value)
+	public static <Type extends Value<?, ?>> ListValue<Type> create(TypeRegistry.RegisteredType<?, ?> type, List<Type> value)
 	{
 		return new ListValue<>(type, value);
 	}
@@ -140,7 +140,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 						.start("Could not parse type name: ")
 						.append(typeNameResult.description()).build());
 			String typeName = (String)typeNameResult.value().get();
-			TypeRegistry.RegisteredType type = TypeRegistry.get(typeName);
+			TypeRegistry.RegisteredType<?, ?> type = TypeRegistry.get(typeName);
 			if (type == null)
 				return new Consumer.ConsumptionResult<>(source, "\"" + typeName + "\" is not a registered type.");
 			
@@ -155,7 +155,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 			ArrayList<Value<?, ?>> list = new ArrayList<>();
 			for (int index = 0; index < length; index++)
 			{
-				Consumer.ConsumptionResult<Value<?, ?>, Byte> valueResult =
+				Consumer.ConsumptionResult<? extends Value<?, ?>, Byte> valueResult =
 						type.byteConsumer().consume(source);
 				if (!valueResult.success())
 					return new Consumer.ConsumptionResult<>(source, RichStringBuilder.start("Could not parse value #" + index + " as " + type.name() + ": ")
@@ -176,7 +176,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 			if (!typeNameResult.success())
 				return new Consumer.ConsumptionResult<>(source, RichStringBuilder.start("Could not parse type name: ").append(typeNameResult.description()).build());
 			String typeName = (String)typeNameResult.value().get();
-			TypeRegistry.RegisteredType type = TypeRegistry.get(typeName);
+			TypeRegistry.RegisteredType<?, ?> type = TypeRegistry.get(typeName);
 			if (type == null)
 				return new Consumer.ConsumptionResult<>(source, "\"" + typeName + "\" is not a registered type.");
 			
@@ -191,7 +191,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 			{
 				expecting = false;
 				
-				Consumer.ConsumptionResult<Value<?, ?>, Character> valueResult =
+				Consumer.ConsumptionResult<? extends Value<?, ?>, Character> valueResult =
 						type.characterConsumer().consume(source);
 				if (!valueResult.success())
 					return new Consumer.ConsumptionResult<>(source, RichStringBuilder.start("Could not parse value #" + index + " as " + type.name() + ": ")
@@ -232,7 +232,7 @@ public class ListValue<Type extends Value<?, ?>> extends Value<List<Type>, List<
 	
 	private static <ValueType, ConsumptionResult, Type extends Value<ValueType, ConsumptionResult>> ListValue<Type> makeValidationList(Class<Type> typeClass)
 	{
-		TypeRegistry.RegisteredType type = TypeRegistry.get(typeClass);
+		TypeRegistry.RegisteredType<?, ?> type = TypeRegistry.get(typeClass);
 		if (type == null)
 			throw new RuntimeException(typeClass + " is not a registered type");
 		ArrayList<Type> values = new ArrayList<>();

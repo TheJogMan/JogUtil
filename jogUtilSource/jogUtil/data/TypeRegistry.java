@@ -27,7 +27,7 @@ public class TypeRegistry
 			.add("UUID", UUIDValue.class)
 			.add("String", StringValue.class)
 			
-			.addListValue("List", ListValue.class)
+			.add("List", ListValue.class)
 			.add("Data", DataValue.class)
 			.process();
 	
@@ -39,9 +39,9 @@ public class TypeRegistry
 	 * @param typeClass
 	 * @return
 	 */
-	public static <ValueType, ConsumptionResult> RegisteredType<ValueType, ConsumptionResult> get(Class<? extends Value<ValueType, ConsumptionResult>> typeClass)
+	public static RegisteredType<?, ?> get(Class<? extends Value<?, ?>> typeClass)
 	{
-		return (RegisteredType<ValueType, ConsumptionResult>)classMap.get(typeClass);
+		return classMap.get(typeClass);
 	}
 	
 	/**
@@ -465,13 +465,7 @@ public class TypeRegistry
 		
 		final ArrayList<Entry<?, ?>> queue = new ArrayList<>();
 		
-		public <ValueType, ConsumptionResult> RegistrationQueue add(String name, Class<? extends Value<ValueType, ConsumptionResult>> typeClass)
-		{
-			queue.add(new Entry(name, typeClass));
-			return this;
-		}
-		
-		RegistrationQueue addListValue(String name, Class<ListValue> typeClass)
+		public RegistrationQueue add(String name, Class<?> typeClass)
 		{
 			queue.add(new Entry(name, typeClass));
 			return this;
