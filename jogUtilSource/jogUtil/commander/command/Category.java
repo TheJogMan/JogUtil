@@ -106,13 +106,13 @@ public class Category extends CommandComponent
 	}
 	
 	@Override
-	public ReturnResult<Boolean> interpret(Indexer<Character> source, Executor executor)
+	public ReturnResult<Boolean> interpret(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		return getContext(executor).interpret(source);
 	}
 	
 	@Override
-	public List<String> getCompletions(Indexer<Character> source, Executor executor)
+	public List<String> getCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		return getContext(executor).getCompletions(source);
 	}

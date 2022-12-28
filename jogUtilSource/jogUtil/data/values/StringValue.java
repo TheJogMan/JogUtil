@@ -33,7 +33,7 @@ public class StringValue extends Value<String, String>
 	}
 	
 	@Override
-	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		ArrayList<String> completion = new ArrayList<>();
 		completion.add("\"");

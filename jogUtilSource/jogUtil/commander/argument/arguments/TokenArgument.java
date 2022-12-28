@@ -34,7 +34,7 @@ public class TokenArgument extends PlainArgument<TokenArgument.Token>
 	}
 	
 	@Override
-	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		ArrayList<String> completions = new ArrayList<>(tokens.length);
 		completions.addAll(Arrays.asList(tokens));
@@ -42,7 +42,7 @@ public class TokenArgument extends PlainArgument<TokenArgument.Token>
 	}
 	
 	@Override
-	public ReturnResult<Token> interpretArgument(Indexer<Character> source, Executor executor)
+	public ReturnResult<Token> interpretArgument(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		String token = StringValue.consumeString(source, ' ');
 		if (caseSensitive)

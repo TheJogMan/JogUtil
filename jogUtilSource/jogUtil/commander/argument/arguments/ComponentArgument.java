@@ -34,7 +34,7 @@ public class ComponentArgument extends PlainArgument<CommandComponent>
 	}
 	
 	@Override
-	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		String token = StringValue.consumeString(source, ' ');
 		ArrayList<String> completions = new ArrayList<>();
@@ -54,7 +54,7 @@ public class ComponentArgument extends PlainArgument<CommandComponent>
 	}
 	
 	@Override
-	public ReturnResult<CommandComponent> interpretArgument(Indexer<Character> source, Executor executor)
+	public ReturnResult<CommandComponent> interpretArgument(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		String token = StringValue.consumeString(source, ' ');
 		CommandComponent component = category.getContext(executor).get(token);

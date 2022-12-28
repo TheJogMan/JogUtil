@@ -74,7 +74,7 @@ public class AdaptiveArgumentList extends ArgumentList
 	}
 	
 	@Override
-	public AdaptiveInterpretation interpret(Indexer<Character> source, Executor executor)
+	public AdaptiveInterpretation interpret(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		AdaptiveInterpretation.ResultContainer[] results = new AdaptiveInterpretation.ResultContainer[lists.size()];
 		
@@ -85,7 +85,7 @@ public class AdaptiveArgumentList extends ArgumentList
 		for (int index = 0; index < lists.size(); index++)
 		{
 			Indexer<Character> sourceCopy = source.copy();
-			ReturnResult<Object[]> result = lists.get(index).list.interpret(sourceCopy, executor);
+			ReturnResult<Object[]> result = lists.get(index).list.interpret(sourceCopy, executor, data);
 			results[index] = new AdaptiveInterpretation.ResultContainer(result, sourceCopy);
 			if (result.success() && (!mustReachEnd || sourceCopy.atEnd()))
 				return new AdaptiveInterpretation(result.description(), result.success(), index, result.value(), sourceCopy, results, executor);
@@ -94,14 +94,14 @@ public class AdaptiveArgumentList extends ArgumentList
 	}
 	
 	@Override
-	public List<String> getCompletions(Indexer<Character> source, Executor executor)
+	public List<String> getCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		if (!canExecute(executor).success())
 			return new ArrayList<>();
 		
 		ArrayList<String> completions = new ArrayList<>();
 		for (ArgumentListEntry list : lists)
-			completions.addAll(list.list.getCompletions(source.copy(), executor));
+			completions.addAll(list.list.getCompletions(source.copy(), executor, data));
 		return completions;
 	}
 	

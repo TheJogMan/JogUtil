@@ -108,7 +108,7 @@ public abstract class Command extends CommandComponent
 	}
 	
 	@Override
-	public ReturnResult<Boolean> interpret(Indexer<Character> source, Executor executor)
+	public ReturnResult<Boolean> interpret(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		Result canExecute = canExecute(executor);
 		if (!canExecute.success())
@@ -119,7 +119,7 @@ public abstract class Command extends CommandComponent
 			return result;
 		}
 		
-		AdaptiveInterpretation result = argumentList.interpret(source, executor);
+		AdaptiveInterpretation result = argumentList.interpret(source, executor, data);
 		if (result.success())
 		{
 			if (!callExecutors(result, executor))
@@ -197,12 +197,12 @@ public abstract class Command extends CommandComponent
 	}
 	
 	@Override
-	public List<String> getCompletions(Indexer<Character> source, Executor executor)
+	public List<String> getCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		if (!canExecute(executor).success())
 			return null;
 		
-		return argumentList.getCompletions(source, executor);
+		return argumentList.getCompletions(source, executor, data);
 	}
 	
 	public final void setArgumentList(AdaptiveArgumentList list)

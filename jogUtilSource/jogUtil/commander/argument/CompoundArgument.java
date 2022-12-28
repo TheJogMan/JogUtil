@@ -20,15 +20,15 @@ public abstract class CompoundArgument<ValueType> implements Argument<ValueType>
 	}
 	
 	@Override
-	public final List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public final List<String> argumentCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
-		return arguments.getCompletions(source, executor);
+		return arguments.getCompletions(source, executor, data);
 	}
 	
 	@Override
-	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor)
+	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor, Object[] data)
 	{
-		AdaptiveInterpretation result = arguments.interpret(source, executor);
+		AdaptiveInterpretation result = arguments.interpret(source, executor, data);
 		if (!result.success())
 			return new ReturnResult<>(result.description());
 		else

@@ -12,7 +12,7 @@ public class ArgumentList implements Interpretable<Object[]>
 	final ArrayList<ArgumentEntry> arguments = new ArrayList<>();
 	
 	@Override
-	public ReturnResult<Object[]> interpret(Indexer<Character> source, Executor executor)
+	public ReturnResult<Object[]> interpret(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		Result canExecute = canExecute(executor);
 		if (!canExecute.success())
@@ -52,7 +52,7 @@ public class ArgumentList implements Interpretable<Object[]>
 	}
 	
 	@Override
-	public List<String> getCompletions(Indexer<Character> source, Executor executor)
+	public List<String> getCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		if (!canExecute(executor).success())
 			return new ArrayList<>();
@@ -145,9 +145,11 @@ public class ArgumentList implements Interpretable<Object[]>
 		Argument<?> argument;
 		String name = "Argument";
 		RichString description = new RichString("No Description.");
+		final Object[] data;
 		
 		ArgumentEntry(Class<? extends Argument<?>> argumentClass, String name, Object[] data, RichString description)
 		{
+			this.data = data;
 			try
 			{
 				argument = argumentClass.getConstructor().newInstance();
@@ -213,7 +215,7 @@ public class ArgumentList implements Interpretable<Object[]>
 			List<String> completions;
 			try
 			{
-				completions = argument.getCompletions(source, executor);
+				completions = argument.getCompletions(source, executor, data);
 			}
 			catch (Exception e)
 			{
@@ -230,7 +232,7 @@ public class ArgumentList implements Interpretable<Object[]>
 		{
 			try
 			{
-				return argument.interpret(source, executor);
+				return argument.interpret(source, executor, data);
 			}
 			catch (Exception e)
 			{

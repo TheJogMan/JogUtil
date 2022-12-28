@@ -39,7 +39,7 @@ public class TypeRegistry
 	 * @param typeClass
 	 * @return
 	 */
-	public static RegisteredType<?, ?> get(Class<? extends Value<?, ?>> typeClass)
+	public static RegisteredType<?, ?> get(Object typeClass)
 	{
 		return classMap.get(typeClass);
 	}
@@ -87,7 +87,7 @@ public class TypeRegistry
 		{
 			if (arguments.length == 1)
 			{
-				if (!(arguments[0] instanceof GenericArrayType) || !((GenericArrayType)arguments[0]).getGenericComponentType().equals(Object.class))
+				if (!arguments[0].equals(Object[].class))
 					return new Result("Argument must be an array of Objects");
 			}
 			else if (arguments.length > 1)
@@ -119,12 +119,7 @@ public class TypeRegistry
 		@Override
 		public Consumer<Value<?, ConsumptionResult>, Character> characterConsumer(Object[] data)
 		{
-			if (characterConsumer.method.getParameterCount() == 1)
-			{
-				if (data.length == 0)
-					data = new Object[] {new Object[0]};
-			}
-			return (Consumer<Value<?, ConsumptionResult>, Character>)characterConsumer.invoke(data);
+			return (Consumer<Value<?, ConsumptionResult>, Character>)characterConsumer.invoke(new Object[] {data});
 		}
 	}
 	
@@ -225,7 +220,7 @@ public class TypeRegistry
 		{
 			if (arguments.length == 1)
 			{
-				if (!(arguments[0] instanceof GenericArrayType) || !((GenericArrayType)arguments[0]).getGenericComponentType().equals(Object.class))
+				if (!arguments[0].equals(Object[].class))
 					return new Result("Argument must be an array of Objects");
 			}
 			else if (arguments.length > 1)
@@ -397,10 +392,18 @@ public class TypeRegistry
 			{
 				if (!valid.success())
 					throw new RuntimeException("Could not call " + annotation.getSimpleName() + " in " + typeClass.getName() + " because the method signature is invalid: " + valid.description());
+				Object[] parameters = new Object[method.getParameterCount()];
+				for (int index = 0; index < parameters.length; index++)
+				{
+					if (index < arguments.length)
+						parameters[index] = arguments[index];
+					else
+						parameters[index] = null;
+				}
 				
 				try
 				{
-					return method.invoke(null, arguments);
+					return method.invoke(null, parameters);
 				}
 				catch (IllegalAccessException | ClassCastException | InvocationTargetException e)
 				{
@@ -430,17 +433,12 @@ public class TypeRegistry
 		
 		public Consumer<Value<?, ConsumptionResult>, Byte> byteConsumer()
 		{
-			return (Consumer<Value<?, ConsumptionResult>, Byte>)byteConsumer.invoke();
+			return byteConsumer(new Object[0]);
 		}
 		
 		public Consumer<Value<?, ConsumptionResult>, Byte> byteConsumer(Object[] data)
 		{
-			if (byteConsumer.method.getParameterCount() == 1)
-			{
-				if (data.length == 0)
-					data = new Object[] {new Object[0]};
-			}
-			return (Consumer<Value<?, ConsumptionResult>, Byte>)byteConsumer.invoke(data);
+			return (Consumer<Value<?, ConsumptionResult>, Byte>)byteConsumer.invoke(new Object[] {data});
 		}
 		
 		public Consumer<Value<?, ConsumptionResult>, Character> characterConsumer()
@@ -544,7 +542,7 @@ public class TypeRegistry
 		Value<ValueType, ConsumptionResult>[] values;
 		try
 		{
-			values = (Value<ValueType, ConsumptionResult>[])type.validationValues.invoke(null);
+			values = (Value<ValueType, ConsumptionResult>[])type.validationValues.invoke();
 		}
 		catch (Exception e)
 		{

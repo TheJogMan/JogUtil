@@ -154,7 +154,7 @@ public abstract class Value<ValueType, ConsumptionType> implements Argument<Valu
 	
 	public TypeRegistry.RegisteredType<?, ?> type()
 	{
-		return TypeRegistry.get((Class<? extends Value<?, ?>>)getClass());
+		return TypeRegistry.get(getClass());
 	}
 	
 	public TypeRegistry.RegisteredPlainType<ValueType, ConsumptionType> plainType()
@@ -164,13 +164,23 @@ public abstract class Value<ValueType, ConsumptionType> implements Argument<Valu
 	
 	public Consumer<Value<ValueType, ConsumptionType>, Byte> byteConsumer()
 	{
-		Consumer<?, Byte> consumer = type().byteConsumer();
+		return byteConsumer(new Object[0]);
+	}
+	
+	public Consumer<Value<ValueType, ConsumptionType>, Byte> byteConsumer(Object[] data)
+	{
+		Consumer<?, Byte> consumer = type().byteConsumer(data);
 		return (Consumer<Value<ValueType, ConsumptionType>, Byte>)consumer;
 	}
 	
 	public Consumer<Value<ValueType, ConsumptionType>, Character> characterConsumer()
 	{
-		Consumer<?, Character> consumer = type().characterConsumer();
+		return characterConsumer(new Object[0]);
+	}
+	
+	public Consumer<Value<ValueType, ConsumptionType>, Character> characterConsumer(Object[] data)
+	{
+		Consumer<?, Character> consumer = type().characterConsumer(data);
 		return (Consumer<Value<ValueType, ConsumptionType>, Character>)consumer;
 	}
 	
@@ -203,10 +213,10 @@ public abstract class Value<ValueType, ConsumptionType> implements Argument<Valu
 	}
 	
 	@Override
-	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor)
+	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		Consumer.ConsumptionResult<Value<ValueType, ConsumptionType>, Character> result;
-		result = characterConsumer().consume(source);
+		result = characterConsumer(data).consume(source);
 		if (result.success())
 			return new ReturnResult<>(result.value().get());
 		else

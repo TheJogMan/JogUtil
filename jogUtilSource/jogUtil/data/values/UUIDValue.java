@@ -31,7 +31,7 @@ public class UUIDValue extends Value<UUID, UUID>
 	}
 	
 	@Override
-	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		return null;
 	}

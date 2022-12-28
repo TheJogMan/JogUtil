@@ -31,7 +31,7 @@ public class BooleanValue extends Value<Boolean, Boolean>
 	}
 	
 	@Override
-	public List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		ArrayList<String> completions = new ArrayList<>();
 		String token = StringValue.consumeString(source, ' ').toLowerCase();

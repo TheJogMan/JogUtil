@@ -17,11 +17,17 @@ public interface Interpretable<InterpretationResult> extends ExecutorFilter
 	 * </p>
 	 * @param source
 	 * @param executor
+	 * @param data Additional data to configure interpreter
 	 * @return
 	 * @see jogUtil.commander.ExecutorFilter#transform(Executor)
 	 * @see jogUtil.commander.ExecutorFilter#canExecute(Executor)
 	 */
-	public ReturnResult<InterpretationResult> interpret(Indexer<Character> source, Executor executor);
+	public ReturnResult<InterpretationResult> interpret(Indexer<Character> source, Executor executor, Object[] data);
+	
+	public default ReturnResult<InterpretationResult> interpret(Indexer<Character> source, Executor executor)
+	{
+		return interpret(source, executor, new Object[0]);
+	}
 	
 	/**
 	 * Provides Auto-Completions based on a Character source.
@@ -35,9 +41,15 @@ public interface Interpretable<InterpretationResult> extends ExecutorFilter
 	 * </p>
 	 * @param source
 	 * @param executor
+	 * @param data Additional data to configure completions
 	 * @return
 	 * @see jogUtil.commander.ExecutorFilter#transform(Executor)
 	 * @see jogUtil.commander.ExecutorFilter#canExecute(Executor)
 	 */
-	public List<String> getCompletions(Indexer<Character> source, Executor executor);
+	public List<String> getCompletions(Indexer<Character> source, Executor executor, Object[] data);
+	
+	public default List<String> getCompletions(Indexer<Character> source, Executor executor)
+	{
+		return getCompletions(source, executor, new Object[0]);
+	}
 }

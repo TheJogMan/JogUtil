@@ -41,7 +41,7 @@ public abstract class CompoundArgumentValue<ValueType, ConsumptionType> extends 
 	}
 	
 	@Override
-	public final List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	public final List<String> argumentCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		return null;
 	}
@@ -75,7 +75,7 @@ public abstract class CompoundArgumentValue<ValueType, ConsumptionType> extends 
 			AdaptiveArgumentList list = type.argumentList(data);
 			
 			//interpret the list, and make sure it was successful
-			AdaptiveInterpretation result = list.interpret(source, executor);
+			AdaptiveInterpretation result = list.interpret(source, executor, data);
 			if (!result.success())
 				return new Consumer.ConsumptionResult<>(source, result.description());
 			

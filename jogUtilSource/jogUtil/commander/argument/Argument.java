@@ -55,11 +55,17 @@ public interface Argument<ValueType> extends Interpretable<ValueType>
 	 * </p>
 	 * @param source
 	 * @param executor
+	 * @param data Additional data to configure completions
 	 * @return
 	 * @see jogUtil.commander.Interpretable#getCompletions(Indexer, Executor)
 	 * @see #setCompletionBehavior(CompletionBehavior)
 	 */
-	public List<String> argumentCompletions(Indexer<Character> source, Executor executor);
+	public List<String> argumentCompletions(Indexer<Character> source, Executor executor, Object[] data);
+	
+	public default List<String> argumentCompletions(Indexer<Character> source, Executor executor)
+	{
+		return argumentCompletions(source, executor, new Object[0]);
+	}
 	
 	/**
 	 * Interprets this argument.
@@ -69,9 +75,15 @@ public interface Argument<ValueType> extends Interpretable<ValueType>
 	 * </p>
 	 * @param source
 	 * @param executor
+	 * @param data Additional data to configure interpreter
 	 * @return
 	 */
-	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor);
+	public ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor, Object[] data);
+	
+	public default ReturnResult<ValueType> interpretArgument(Indexer<Character> source, Executor executor)
+	{
+		return interpretArgument(source, executor, new Object[0]);
+	}
 	
 	/**
 	 * Determines how completions will be modified.
@@ -88,7 +100,7 @@ public interface Argument<ValueType> extends Interpretable<ValueType>
 	 *     Basic: Completions will not be modified.
 	 * </p>
 	 * @param behavior
-	 * @see #argumentCompletions(Indexer, Executor)
+	 * @see #argumentCompletions(Indexer, Executor, Object[])
 	 */
 	public void setCompletionBehavior(CompletionBehavior behavior);
 	
@@ -118,12 +130,12 @@ public interface Argument<ValueType> extends Interpretable<ValueType>
 	}
 	
 	@Override
-	public default List<String> getCompletions(Indexer<Character> source, Executor executor)
+	public default List<String> getCompletions(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		ArrayList<String> completions = new ArrayList<>();
 		if (canExecute(executor).success())
 		{
-			List<String> rawCompletions = argumentCompletions(source.copy(), executor);
+			List<String> rawCompletions = argumentCompletions(source.copy(), executor, data);
 			if (rawCompletions == null)
 				rawCompletions = new ArrayList<>();
 			String token = StringValue.consumeString(source, ' ');
@@ -150,12 +162,12 @@ public interface Argument<ValueType> extends Interpretable<ValueType>
 	}
 	
 	@Override
-	public default ReturnResult<ValueType> interpret(Indexer<Character> source, Executor executor)
+	public default ReturnResult<ValueType> interpret(Indexer<Character> source, Executor executor, Object[] data)
 	{
 		Result filterResult = canExecute(executor);
 		if (!filterResult.success())
 			return new ReturnResult<>(filterResult.description());
 		
-		return interpretArgument(source, executor);
+		return interpretArgument(source, executor, data);
 	}
 }
